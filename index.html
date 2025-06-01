@@ -97,15 +97,20 @@
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 700px;
+            /* Use a fluid height for mobile based on viewport width */
+            height: 70vw; /* For mobile, height scales with width */
+            max-height: 400px; /* Cap max height for larger screens */
             margin-left: auto;
             margin-right: auto;
-            height: 350px;
-            max-height: 400px;
+            background-color: #f0f4f8; /* Add a light background for visibility */
+            border-radius: 0.75rem; /* Match other card styles */
+            padding: 1rem; /* Add some padding */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow */
         }
         @media (min-width: 768px) {
             .chart-container {
-                height: 400px;
+                height: 400px; /* Fixed height for desktop */
+                padding: 0; /* Remove padding if not needed for desktop chart */
             }
         }
         .plan-card, .feature-card, .testimonial-card { /* Combined styling for similar card effects */
@@ -352,7 +357,21 @@
             max-height: 600px;
             max-width: 400px;
             padding: 1rem; /* Adjust padding for chat */
+            /* Ensure it's centered and responsive */
+            margin: auto; /* Center the modal on screen */
+            align-self: center; /* Align in flex container */
+            justify-content: center; /* Align in flex container */
         }
+
+        @media (max-width: 640px) { /* Small screens */
+            #chatbotModal .modal-content {
+                width: 95%; /* Take more width on small screens */
+                height: 90vh; /* Take more height on small screens */
+                max-height: unset; /* Remove max-height constraint */
+                max-width: unset; /* Remove max-width constraint */
+            }
+        }
+
         #chatbox {
             flex-grow: 1;
             overflow-y: auto;
@@ -386,6 +405,7 @@
         #chat-input-container {
             display: flex;
             gap: 0.5rem;
+            flex-shrink: 0; /* Prevent input from shrinking */
         }
         #chatInput {
             flex-grow: 1;
@@ -400,6 +420,9 @@
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
             transition: background-color 0.3s ease;
+            display: flex; /* For spinner alignment */
+            align-items: center; /* For spinner alignment */
+            justify-content: center; /* For spinner alignment */
         }
         #sendChatBtn:hover {
             background-color: #dc2626;
@@ -411,6 +434,7 @@
             animation: blink-caret 0.75s step-end infinite;
             font-weight: bold; /* Make cursor visible */
             margin-left: 2px;
+            vertical-align: bottom; /* Align cursor with text baseline */
         }
 
         @keyframes blink-caret {
@@ -485,28 +509,28 @@
                     <div class="icon-container">
                         <i data-lucide="zap"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">Blazing-Fast Speeds</h3>
+                    <h3 class="text-xl font-bold mb-2">⚡ Blazing-Fast Speeds</h3>
                     <p class="text-gray-600">Enjoy speeds up to 10 Gbps for 4K streaming, lag-free gaming, and smooth Browse.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon-container">
                         <i data-lucide="wrench"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">Free Installation & Router</h3>
+                    <h3 class="text-xl font-bold mb-2">🛠️ Free Installation & Router</h3>
                     <p class="text-gray-600">Professional setup and a complimentary Wi-Fi router included with your plan.</p>
                 </div>
                 <div class="feature-card md:hidden">
                     <div class="icon-container">
                         <i data-lucide="phone-off"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">No Landline Needed</h3>
+                    <h3 class="text-xl font-bold mb-2">🚫 No Landline Needed</h3>
                     <p class="text-gray-600">Enjoy dedicated fiber internet connectivity without the need for a traditional landline.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon-container">
                         <i data-lucide="tv"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">Ooredoo tv Included</h3>
+                    <h3 class="text-xl font-bold mb-2">📺 Ooredoo tv Included</h3>
                     <p class="text-gray-600">Access entertainment with Ooredoo tv App or TV box, depending on your chosen plan.</p>
                 </div>
             </div>
@@ -614,59 +638,7 @@
             </div>
         </section>
 
-        <section id="faq" class="py-16 md:py-20 bg-gray-50 rounded-2xl">
-            <div class="text-center mb-12 px-4">
-                <h2 class="text-3xl font-bold tracking-tight text-slate-900">Frequently Asked Questions</h2>
-                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Find quick answers to common questions about Ooredoo Home+.</p>
-            </div>
-            <div class="max-w-3xl mx-auto px-4">
-                <div class="accordion-item">
-                    <button class="accordion-button">
-                        What is Home WiFi @310 Qr monthly?
-                        <span class="accordion-icon">&#9660;</span>
-                    </button>
-                    <div class="accordion-content">
-                        <p>It's a promotional offer from Al Anees Electronics, an Ooredoo Premium Partner, providing high-speed home internet at a special monthly rate of 310 Qr.</p>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <button class="accordion-button">
-                        Do I need a landline for this service?
-                        <span class="accordion-icon">&#9660;</span>
-                    </button>
-                    <div class="accordion-content">
-                        <p>No, this service provides dedicated fiber internet connectivity and does not require a traditional landline connection.</p>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <button class="accordion-button">
-                        Is installation free?
-                        <span class="accordion-icon">&#9660;</span>
-                    </button>
-                    <div class="accordion-content">
-                        <p>Yes, professional installation and a complimentary Wi-Fi router are included with your plan.</p>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <button class="accordion-button">
-                        How can I check if Ooredoo Home+ is available in my area?
-                        <span class="accordion-icon">&#9660;</span>
-                    </button>
-                    <div class="accordion-content">
-                        <p>You can fill out the 'Get Connected Today!' form with your building, zone, and street numbers, and our team will check availability for you.</p>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <button class="accordion-button">
-                        What speeds can I expect?
-                        <span class="accordion-icon">&#9660;</span>
-                    </button>
-                    <div class="accordion-content">
-                        <p>The base plan offers speeds up to 1 Gbps, with higher speeds available on premium plans, reaching up to 10 Gbps.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
+        
 
         <section id="comparison" class="py-16 md:py-20">
              <div class="text-center mb-12 px-4">
@@ -1165,32 +1137,32 @@ Please provide your recommendation in a friendly tone.`;
                 }
 
 
-                // FAQ Accordion functionality
-                const accordionButtons = document.querySelectorAll('.accordion-button');
-                accordionButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        const content = button.nextElementSibling;
-                        const icon = button.querySelector('.accordion-icon');
+                // FAQ Accordion functionality - REMOVED
+                // const accordionButtons = document.querySelectorAll('.accordion-button');
+                // accordionButtons.forEach(button => {
+                //     button.addEventListener('click', () => {
+                //         const content = button.nextElementSibling;
+                //         const icon = button.querySelector('.accordion-icon');
 
-                        // Close other open accordions
-                        accordionButtons.forEach(otherButton => {
-                            if (otherButton !== button) {
-                                otherButton.nextElementSibling.classList.remove('active');
-                                otherButton.nextElementSibling.style.maxHeight = null;
-                                otherButton.querySelector('.accordion-icon').classList.remove('rotate');
-                            }
-                        });
+                //         // Close other open accordions
+                //         accordionButtons.forEach(otherButton => {
+                //             if (otherButton !== button) {
+                //                 otherButton.nextElementSibling.classList.remove('active');
+                //                 otherButton.nextElementSibling.style.maxHeight = null;
+                //                 otherButton.querySelector('.accordion-icon').classList.remove('rotate');
+                //             }
+                //         });
 
-                        // Toggle current accordion
-                        content.classList.toggle('active');
-                        icon.classList.toggle('rotate');
-                        if (content.style.maxHeight) {
-                            content.style.maxHeight = null;
-                        } else {
-                            content.style.maxHeight = content.scrollHeight + "px";
-                        }
-                    });
-                });
+                //         // Toggle current accordion
+                //         content.classList.toggle('active');
+                //         icon.classList.toggle('rotate');
+                //         if (content.style.maxHeight) {
+                //             content.style.maxHeight = null;
+                //         } else {
+                //             content.style.maxHeight = content.scrollHeight + "px";
+                //         }
+                //     });
+                // });
 
                 // Smooth scrolling for anchor links
                 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -1290,6 +1262,14 @@ Please provide your recommendation in a friendly tone.`;
                     chatHistory.push({ role: "user", parts: [{ text: message }] });
                     displayMessage(message, 'user');
 
+                    // Add AI typing indicator
+                    const aiTypingMessageElement = document.createElement('div');
+                    aiTypingMessageElement.classList.add('chat-message', 'ai');
+                    aiTypingMessageElement.innerHTML = 'AI is typing... <span class="loading-spinner w-4 h-4 ml-2"></span>';
+                    chatbox.appendChild(aiTypingMessageElement);
+                    chatbox.scrollTop = chatbox.scrollHeight;
+
+
                     const payload = { contents: chatHistory };
                     // The API key is provided by the Canvas environment at runtime for security.
                     // If you are running this code outside Canvas, you would need to replace
@@ -1303,6 +1283,9 @@ Please provide your recommendation in a friendly tone.`;
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
+
+                        // Remove AI typing indicator
+                        aiTypingMessageElement.remove();
 
                         if (!response.ok) {
                             const errorData = await response.json();
@@ -1328,6 +1311,8 @@ Please provide your recommendation in a friendly tone.`;
                             console.error("Unexpected API response structure:", result);
                         }
                     } catch (error) {
+                        // Remove AI typing indicator
+                        aiTypingMessageElement.remove();
                         const errorMsg = "I apologize, but I encountered a network error. Please check your connection and try again.";
                         chatHistory.push({ role: "model", parts: [{ text: errorMsg }] });
                         displayMessageTyping(errorMsg, 'ai'); // Use typing effect for error
