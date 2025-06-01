@@ -884,6 +884,12 @@
                 let comparisonChartInstance = null; // Declare chart instance globally within initializePageLogic
 
                 if(ctx) {
+                    // Destroy existing chart instance if it exists
+                    if (comparisonChartInstance) {
+                        comparisonChartInstance.destroy();
+                    }
+
+                    // Initialize Chart.js chart
                     comparisonChartInstance = new Chart(ctx, {
                         type: 'bar',
                         data: {
@@ -955,9 +961,15 @@
                         }
                     });
 
-                    // Add ResizeObserver to update chart when container size changes
+                    // Set initial canvas dimensions to match container
                     const chartContainer = ctx.closest('.chart-container');
                     if (chartContainer) {
+                        ctx.width = chartContainer.clientWidth;
+                        ctx.height = chartContainer.clientHeight;
+                        comparisonChartInstance.resize();
+                        comparisonChartInstance.update();
+
+                        // Add ResizeObserver to update chart when container size changes
                         const resizeObserver = new ResizeObserver(entries => {
                             for (let entry of entries) {
                                 if (entry.target === chartContainer) {
@@ -1077,6 +1089,7 @@
                 if (openAiRecommenderModalBtn && aiRecommenderModal && closeAiRecommenderModalBtn && usageDescriptionInput && getAiRecommendationBtn && aiSpinner && aiRecommendationOutput) {
 
                     openAiRecommenderModalBtn.addEventListener('click', () => {
+                        console.log("Opening AI Recommender Modal");
                         aiRecommenderModal.classList.add('open');
                         aiRecommenderModal.classList.remove('hidden');
                         // Reset fields and output when opening
@@ -1086,12 +1099,14 @@
                     });
 
                     closeAiRecommenderModalBtn.addEventListener('click', () => {
+                        console.log("Closing AI Recommender Modal");
                         aiRecommenderModal.classList.remove('open');
                         aiRecommenderModal.classList.add('hidden');
                     });
 
                     aiRecommenderModal.addEventListener('click', (event) => {
                         if (event.target === aiRecommenderModal) {
+                            console.log("Closing AI Recommender Modal by overlay click");
                             aiRecommenderModal.classList.remove('open');
                             aiRecommenderModal.classList.add('hidden');
                         }
@@ -1108,6 +1123,7 @@
                         aiSpinner.classList.remove('hidden');
                         aiRecommendationOutput.classList.add('hidden'); // Hide before new request
                         aiRecommendationOutput.innerHTML = ''; // Clear previous output
+                        console.log("Sending AI recommendation request...");
 
                         const prompt = `You are an Ooredoo Home+ plan advisor. Based on the user's description and the following available plans, recommend the most suitable plan. Explain your reasoning clearly and concisely, focusing on how the plan's speed, features (like multiple Wi-Fi routers or fibre-connected rooms), and unlimited internet contribute to best performance for the user's needs for activities such as 4K streaming, online gaming, video calls, and supporting multiple connected devices. If no plan perfectly fits, suggest the closest one and mention any trade-offs. Do not invent plans or features not listed. Keep the response helpful and easy to understand.
 
@@ -1133,6 +1149,7 @@ Please provide your recommendation in a friendly tone.`;
                             });
 
                             const result = await response.json();
+                            console.log("AI recommendation response received:", result);
 
                             if (result.candidates && result.candidates.length > 0 &&
                                 result.candidates[0].content && result.candidates[0].content.parts &&
@@ -1145,7 +1162,7 @@ Please provide your recommendation in a friendly tone.`;
                                 aiRecommendationOutput.innerHTML = `<p>${text}</p>`;
                             } else {
                                 aiRecommendationOutput.innerHTML = '<p class="text-red-500">Sorry, I could not generate a recommendation at this time. Please try again.</p>';
-                                console.error("Unexpected API response structure:", result);
+                                console.error("Unexpected AI API response structure:", result);
                             }
                         } catch (error) {
                             aiRecommendationOutput.innerHTML = '<p class="text-red-500">An error occurred while fetching the recommendation. Please try again later.</p>';
@@ -1289,6 +1306,7 @@ Please provide your recommendation in a friendly tone.`;
                         }
 
                         const result = await response.json();
+                        console.log("Chatbot AI response received:", result);
 
                         if (result.candidates && result.candidates.length > 0 &&
                             result.candidates[0].content && result.candidates[0].content.parts &&
@@ -1301,7 +1319,7 @@ Please provide your recommendation in a friendly tone.`;
                             const errorMsg = "Sorry, I'm having trouble understanding. Can you please rephrase?";
                             chatHistory.push({ role: "model", parts: [{ text: errorMsg }] });
                             displayMessageTyping(errorMsg, 'ai'); // Use typing effect for error
-                            console.error("Unexpected API response structure:", result);
+                            console.error("Unexpected AI API response structure:", result);
                         }
                     } catch (error) {
                         // Remove AI typing indicator
@@ -1396,6 +1414,7 @@ Please provide your recommendation in a friendly tone.`;
                             userId: window.userId,
                             timestamp: serverTimestamp()
                         });
+                        console.log("Order saved to Firestore:", orderDetails);
                         displayMessageTyping("Your order has been successfully placed and saved! An agent will contact you shortly to finalize the details.", 'ai'); // Use typing effect
 
                         // Optionally, populate the hidden form elements and trigger its "success" state for visual consistency
@@ -1420,6 +1439,7 @@ Please provide your recommendation in a friendly tone.`;
 
 
                 chatbotFab.addEventListener('click', () => {
+                    console.log("Opening Chatbot Modal");
                     chatbotModal.classList.add('open');
                     chatbotModal.classList.remove('hidden');
                     chatbox.innerHTML = ''; // Clear chat history on open
@@ -1434,12 +1454,14 @@ Please provide your recommendation in a friendly tone.`;
                 });
 
                 closeChatbotModalBtn.addEventListener('click', () => {
+                    console.log("Closing Chatbot Modal");
                     chatbotModal.classList.remove('open');
                     chatbotModal.classList.add('hidden');
                 });
 
                 chatbotModal.addEventListener('click', (event) => {
                     if (event.target === chatbotModal) {
+                        console.log("Closing Chatbot Modal by overlay click");
                         chatbotModal.classList.remove('open');
                         chatbotModal.classList.add('hidden');
                     }
