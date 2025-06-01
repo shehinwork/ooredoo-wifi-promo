@@ -964,10 +964,18 @@
                     // Set initial canvas dimensions to match container
                     const chartContainer = ctx.closest('.chart-container');
                     if (chartContainer) {
+                        // Explicitly set canvas width and height
                         ctx.width = chartContainer.clientWidth;
                         ctx.height = chartContainer.clientHeight;
                         comparisonChartInstance.resize();
                         comparisonChartInstance.update();
+
+                        // Add a small timeout to ensure chart renders correctly after page load
+                        setTimeout(() => {
+                            comparisonChartInstance.resize();
+                            comparisonChartInstance.update();
+                            console.log("Chart re-rendered after a short delay.");
+                        }, 50); // 50ms delay
 
                         // Add ResizeObserver to update chart when container size changes
                         const resizeObserver = new ResizeObserver(entries => {
@@ -979,6 +987,7 @@
                                     if (comparisonChartInstance) {
                                         comparisonChartInstance.resize(); // Tell Chart.js to resize
                                         comparisonChartInstance.update(); // And update the chart
+                                        console.log("Chart resized via ResizeObserver.");
                                     }
                                 }
                             }
@@ -1450,7 +1459,7 @@ Please provide your recommendation in a friendly tone.`;
                     // Add a small timeout to ensure modal is fully rendered before typing effect starts
                     setTimeout(() => {
                         displayMessageTyping("Hello! I'm your Ooredoo Assistant. I can help you find information or place an order for a Home+ plan. <br><br>To start an order, just type something like 'I want to order a plan'.", 'ai'); // Use typing effect for initial message
-                    }, 100); // 100ms delay
+                    }, 200); // Increased delay to 200ms
                 });
 
                 closeChatbotModalBtn.addEventListener('click', () => {
@@ -1477,6 +1486,5 @@ Please provide your recommendation in a friendly tone.`;
             } // End of initializePageLogic
         }; // End of window.onload function
     </script>
-
 </body>
 </html>
