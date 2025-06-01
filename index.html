@@ -41,7 +41,12 @@
                 if (!firebaseConfig.projectId) {
                     console.error("Firebase Initialization Error: 'projectId' is missing in the Firebase configuration. This is critical for connecting to your Firebase project. Please ensure __firebase_config is correctly provided by the environment.");
                     window.isFirebaseReady = false; // Explicitly set to false
-                    // Prevent further Firebase-dependent logic from running by not setting window.firebaseApp
+                    // Update the UI to show the error
+                    const firebaseErrorBanner = document.getElementById('firebaseErrorBanner');
+                    if (firebaseErrorBanner) {
+                        firebaseErrorBanner.classList.remove('hidden');
+                        firebaseErrorBanner.textContent = "Error: AI features are unavailable. Firebase 'projectId' is missing in configuration.";
+                    }
                     return;
                 }
 
@@ -80,6 +85,11 @@
                                 document.getElementById('current-user-id').textContent = window.userId + " (Anon - Auth Failed)";
                                 console.error("User ID set to random UUID due to auth failure.");
                                 window.isFirebaseReady = false; // Auth failed, so Firebase is not fully ready for operations
+                                const firebaseErrorBanner = document.getElementById('firebaseErrorBanner');
+                                if (firebaseErrorBanner) {
+                                    firebaseErrorBanner.classList.remove('hidden');
+                                    firebaseErrorBanner.textContent = "Error: AI features are unavailable. Firebase authentication failed.";
+                                }
                             }
                         }
                     });
@@ -89,6 +99,11 @@
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
                 window.isFirebaseReady = false; // Any error during init means it's not ready
+                const firebaseErrorBanner = document.getElementById('firebaseErrorBanner');
+                if (firebaseErrorBanner) {
+                    firebaseErrorBanner.classList.remove('hidden');
+                    firebaseErrorBanner.textContent = "Error: AI features are unavailable due to a Firebase initialization problem.";
+                }
             }
         };
 
@@ -485,6 +500,11 @@
     </header>
 
     <main class="container mx-auto px-4 md:px-6 py-8 md:py-12 mt-8">
+        <div id="firebaseErrorBanner" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-8" role="alert">
+            <strong class="font-bold">Configuration Error:</strong>
+            <span class="block sm:inline">AI features are unavailable. Firebase is not correctly configured. Please ensure 'projectId' is provided.</span>
+        </div>
+
         <section id="home" class="text-center py-6 md:py-12 bg-white p-4 md:p-10 rounded-2xl shadow-lg border border-gray-100 border-b-[1px] border-red-600 mx-auto relative overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-red-50 to-white opacity-70 rounded-2xl z-0"></div>
             <div class="relative z-10">
@@ -815,8 +835,11 @@
                     console.error("Firebase not initialized due to missing projectId. Stopping readiness check.");
                     clearInterval(checkFirebaseReady);
                     // If Firebase cannot be initialized, ensure AI features are disabled and show appropriate messages
-                    document.getElementById('aiRecommendationOutput').innerHTML = '<p class="text-red-500">AI features are unavailable. Firebase configuration is missing "projectId".</p>';
-                    document.getElementById('aiRecommendationOutput').classList.remove('hidden');
+                    const aiRecommendationOutput = document.getElementById('aiRecommendationOutput');
+                    if (aiRecommendationOutput) {
+                        aiRecommendationOutput.innerHTML = '<p class="text-red-500">AI features are unavailable. Firebase configuration is missing "projectId".</p>';
+                        aiRecommendationOutput.classList.remove('hidden');
+                    }
                     return; // Stop checking if projectId is definitely missing
                 }
 
