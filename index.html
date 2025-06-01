@@ -20,6 +20,7 @@
         window.db = null;
         window.auth = null;
         window.userId = null;
+        window.isFirebaseReady = false; // New flag to indicate Firebase readiness
 
         // Initialize Firebase and authenticate
         const initializeFirebase = async () => {
@@ -39,6 +40,7 @@
                 // IMPORTANT: Check for projectId before initializing
                 if (!firebaseConfig.projectId) {
                     console.error("Firebase Initialization Error: 'projectId' is missing in the Firebase configuration. This is critical for connecting to your Firebase project. Please ensure __firebase_config is correctly provided by the environment.");
+                    window.isFirebaseReady = false; // Explicitly set to false
                     // Prevent further Firebase-dependent logic from running by not setting window.firebaseApp
                     return;
                 }
@@ -55,6 +57,7 @@
                             window.userId = user.uid;
                             console.log("Firebase authenticated. User ID:", window.userId);
                             document.getElementById('current-user-id').textContent = window.userId; // Display user ID
+                            window.isFirebaseReady = true; // Firebase is ready after successful auth
                         } else {
                             console.log("No user signed in. Attempting anonymous sign-in or custom token sign-in.");
                             try {
@@ -70,11 +73,13 @@
                                 window.userId = window.auth.currentUser?.uid || crypto.randomUUID(); // Fallback for anonymous
                                 document.getElementById('current-user-id').textContent = window.userId; // Display user ID
                                 console.log("Current User ID after sign-in attempt:", window.userId);
+                                window.isFirebaseReady = true; // Firebase is ready after successful auth
                             } catch (error) {
                                 console.error("Firebase authentication failed:", error);
                                 window.userId = crypto.randomUUID(); // Generate a random ID if auth fails
                                 document.getElementById('current-user-id').textContent = window.userId + " (Anon - Auth Failed)";
                                 console.error("User ID set to random UUID due to auth failure.");
+                                window.isFirebaseReady = false; // Auth failed, so Firebase is not fully ready for operations
                             }
                         }
                     });
@@ -83,6 +88,7 @@
                 }
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
+                window.isFirebaseReady = false; // Any error during init means it's not ready
             }
         };
 
@@ -808,10 +814,13 @@
                 if (!window.firebaseApp && typeof __firebase_config !== 'undefined' && !JSON.parse(__firebase_config).projectId) {
                     console.error("Firebase not initialized due to missing projectId. Stopping readiness check.");
                     clearInterval(checkFirebaseReady);
+                    // If Firebase cannot be initialized, ensure AI features are disabled and show appropriate messages
+                    document.getElementById('aiRecommendationOutput').innerHTML = '<p class="text-red-500">AI features are unavailable. Firebase configuration is missing "projectId".</p>';
+                    document.getElementById('aiRecommendationOutput').classList.remove('hidden');
                     return; // Stop checking if projectId is definitely missing
                 }
 
-                if (window.db && window.auth && window.userId) {
+                if (window.db && window.auth && window.userId && window.isFirebaseReady) {
                     clearInterval(checkFirebaseReady);
                     console.log("Firebase is ready in window.onload. User ID:", window.userId);
                     initializePageLogic();
@@ -1157,6 +1166,12 @@
                         usageDescriptionInput.value = '';
                         aiRecommendationOutput.innerHTML = ''; // Clear previous output
                         aiRecommendationOutput.classList.add('hidden'); // Ensure it's hidden
+
+                        if (!window.isFirebaseReady) {
+                            aiRecommendationOutput.innerHTML = '<p class="text-red-500">AI features are unavailable. Firebase configuration is missing "projectId".</p>';
+                            aiRecommendationOutput.classList.remove('hidden');
+                            console.warn("AI recommendation disabled: Firebase not ready.");
+                        }
                     });
 
                     closeAiRecommenderModalBtn.addEventListener('click', () => {
@@ -1174,6 +1189,13 @@
                     });
 
                     getAiRecommendationBtn.addEventListener('click', async () => {
+                        if (!window.isFirebaseReady) {
+                            aiRecommendationOutput.innerHTML = '<p class="text-red-500">AI features are unavailable. Firebase configuration is missing "projectId".</p>';
+                            aiRecommendationOutput.classList.remove('hidden');
+                            console.warn("AI recommendation request aborted: Firebase not ready.");
+                            return;
+                        }
+
                         const userUsage = usageDescriptionInput.value.trim();
                         if (!userUsage) {
                             aiRecommendationOutput.innerHTML = '<p class="text-red-500">Please describe your internet usage to get a recommendation.</p>';
@@ -1485,7 +1507,7 @@ Please provide your recommendation in a friendly tone.`;
                 };
 
                 const submitOrderFromChatbot = async (orderDetails) => {
-                    if (!window.db || !window.userId) {
+                    if (!window.isFirebaseReady || !window.db || !window.userId) {
                         displayMessageTyping("Error: Firebase is not fully initialized. Cannot save order. Please refresh the page.", 'ai'); // Use typing effect
                         console.error("Firebase DB or User ID not available for order submission.");
                         return;
@@ -1534,7 +1556,12 @@ Please provide your recommendation in a friendly tone.`;
                     currentQuestionIndex = -1; // Reset question index
                     // Add a small timeout to ensure modal is fully rendered before typing effect starts
                     setTimeout(() => {
-                        displayMessageTyping("Hello! I'm your Ooredoo Assistant. I can help you find information or place an order for a Home+ plan. <br><br>To start an order, just type something like 'I want to order a plan'.", 'ai'); // Use typing effect for initial message
+                        if (window.isFirebaseReady) {
+                            displayMessageTyping("Hello! I'm your Ooredoo Assistant. I can help you find information or place an order for a Home+ plan. <br><br>To start an order, just type something like 'I want to order a plan'.", 'ai'); // Use typing effect for initial message
+                        } else {
+                            displayMessageTyping("I'm sorry, my AI features are currently unavailable due to a missing Firebase configuration. Please contact support.", 'ai');
+                            console.warn("Chatbot disabled: Firebase not ready.");
+                        }
                     }, 200); // Increased delay to 200ms
                 });
 
