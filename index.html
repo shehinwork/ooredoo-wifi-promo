@@ -8,7 +8,76 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;700;900&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/lucide.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase variables accessible in window.onload
+        window.firebaseApp = null;
+        window.db = null;
+        window.auth = null;
+        window.userId = null;
+
+        // Initialize Firebase and authenticate
+        const initializeFirebase = async () => {
+            try {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+                if (!window.firebaseApp) {
+                    window.firebaseApp = initializeApp(firebaseConfig);
+                    window.db = getFirestore(window.firebaseApp);
+                    window.auth = getAuth(window.firebaseApp);
+
+                    onAuthStateChanged(window.auth, async (user) => {
+                        if (user) {
+                            window.userId = user.uid;
+                            console.log("Firebase authenticated. User ID:", window.userId);
+                            document.getElementById('current-user-id').textContent = window.userId; // Display user ID
+                        } else {
+                            console.log("No user signed in. Attempting anonymous sign-in.");
+                            try {
+                                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                    await signInWithCustomToken(window.auth, __initial_auth_token);
+                                } else {
+                                    await signInAnonymously(window.auth);
+                                }
+                                window.userId = window.auth.currentUser?.uid || crypto.randomUUID(); // Fallback for anonymous
+                                document.getElementById('current-user-id').textContent = window.userId; // Display user ID
+                                console.log("Signed in anonymously. User ID:", window.userId);
+                            } catch (error) {
+                                console.error("Firebase authentication failed:", error);
+                                window.userId = crypto.randomUUID(); // Generate a random ID if auth fails
+                                document.getElementById('current-user-id').textContent = window.userId + " (Anon)";
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+            }
+        };
+
+        initializeFirebase();
+
+        // Make Firestore functions globally available for use in window.onload
+        window.firebaseFunctions = {
+            collection,
+            addDoc,
+            serverTimestamp
+        };
+    </script>
+    <script>
+        // Call lucide.createIcons() immediately after the script loads
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        } else {
+            console.warn("Lucide library not loaded when trying to create icons.");
+        }
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -17,7 +86,13 @@
         }
         /* New style for header logo fonts */
         .header-logo-fonts {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Roboto', sans-serif; /* Default for the partner text */
+        }
+        /* Specific style for Al Anees Electronics to match logo feel */
+        .header-logo-alanees {
+            font-family: 'Oswald', sans-serif;
+            font-weight: 700; /* Bold */
+            letter-spacing: -0.025em; /* Slightly tighter letter spacing */
         }
         .chart-container {
             position: relative;
@@ -43,7 +118,7 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out; /* Added border-color transition */
             width: 100%;
             max-width: 380px; /* Increased max-width for cards */
             margin-left: auto; /* Center individual cards within their grid cells */
@@ -52,6 +127,7 @@
         .plan-card:hover, .feature-card:hover, .testimonial-card:hover {
             transform: translateY(-8px) scale(1.02); /* Slightly more pronounced hover */
             box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15); /* Larger shadow on hover */
+            border-color: #ef4444; /* red-500 border on hover */
         }
         @media (min-width: 640px) { /* sm breakpoint */
             .plan-card, .feature-card, .testimonial-card {
@@ -68,6 +144,15 @@
             font-weight: 700;
             margin-bottom: 0.75rem;
             color: #1e293b; /* slate-900 */
+        }
+        .feature-card .icon-container {
+            font-size: 3.5rem; /* Larger icon size */
+            margin-bottom: 1rem;
+            color: #ef4444; /* Red color for icons */
+            transition: transform 0.3s ease-in-out;
+        }
+        .feature-card:hover .icon-container {
+            transform: scale(1.1); /* Slight grow on hover */
         }
         .plan-card .speed {
             font-size: 2.5rem; /* Slightly larger speed text */
@@ -181,15 +266,166 @@
         .accordion-icon.rotate {
             transform: rotate(180deg);
         }
+
+        /* Loading spinner styles */
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-left: 0.5rem;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Modal specific styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1002;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+        .modal-overlay.open .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Chatbot FAB */
+        .chatbot-fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .chatbot-fab:hover {
+            background-color: #dc2626; /* red-600 */
+            transform: scale(1.05);
+        }
+
+        /* Chatbot Modal specific styles */
+        #chatbotModal .modal-content {
+            display: flex;
+            flex-direction: column;
+            height: 80vh; /* Make chatbot modal taller */
+            max-height: 600px;
+            max-width: 400px;
+            padding: 1rem; /* Adjust padding for chat */
+        }
+        #chatbox {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #f1f5f9; /* slate-100 */
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-message {
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.75rem;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .chat-message.user {
+            align-self: flex-end;
+            background-color: #bfdbfe; /* blue-200 */
+            color: #1e40af; /* blue-800 */
+            border-bottom-right-radius: 0;
+        }
+        .chat-message.ai {
+            align-self: flex-start;
+            background-color: #fecaca; /* red-200 */
+            color: #991b1b; /* red-800 */
+            border-bottom-left-radius: 0;
+        }
+        #chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+        #chatInput {
+            flex-grow: 1;
+            border-radius: 0.5rem;
+            border: 1px solid #cbd5e1; /* slate-300 */
+            padding: 0.75rem;
+            resize: none; /* Prevent manual resize */
+        }
+        #sendChatBtn {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+        #sendChatBtn:hover {
+            background-color: #dc2626;
+        }
+
+        /* Typing effect CSS */
+        .typing-cursor {
+            display: inline-block;
+            animation: blink-caret 0.75s step-end infinite;
+            font-weight: bold; /* Make cursor visible */
+            margin-left: 2px;
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: black; } /* Adjust color as needed */
+        }
     </style>
 </head>
 <body class="text-gray-800">
 
     <header id="main-header" class="bg-white shadow-sm py-3 header-fixed border-b-[1px] border-red-600">
         <div class="container mx-auto px-4 flex items-center h-full relative">
-            <div class="flex flex-col items-center justify-center w-full md:w-auto md:flex-row md:items-center md:justify-start header-logo-fonts">
-                <span class="text-lg md:text-2xl font-extrabold text-blue-900">Al Anees Electronics</span>
-                <span class="ml-0 md:ml-4 text-red-700 text-base md:text-2xl font-bold">ooredoo Premium Partner</span>
+            <div class="flex flex-col items-center justify-center w-full md:w-auto md:flex-row md:items-center md:justify-start">
+                <span class="text-lg md:text-2xl font-extrabold text-blue-900 header-logo-alanees">Al Anees Electronics</span>
+                <span class="ml-0 md:ml-4 text-red-700 text-base md:text-2xl font-bold header-logo-fonts">ooredoo Premium Partner</span>
             </div>
             <nav class="absolute right-4 top-1/2 -translate-y-1/2 md:relative md:top-auto md:right-auto md:translate-y-0 md:ml-auto flex items-center">
                 <a href="#ooredoo-plans" class="text-red-600 hover:text-red-700 font-semibold px-3 py-1 rounded-md transition-colors duration-200">
@@ -210,13 +446,13 @@
                     <span class="headline-gradient">Lightning-Fast WiFi!</span>
                 </h1>
                 <p class="mt-4 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-                    Experience seamless streaming, gaming, and browsing. All for one incredible price.
+                    Experience seamless streaming, gaming, and Browse. All for one incredible price.
                 </p>
                 <h2 class="mt-8 text-3xl md:text-4xl font-bold text-gray-900">
                     Home WiFi @310 Qr monthly
                 </h2>
 
-                <div class="mt-8 mb-8 grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+                <div class="mt-8 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
                     <div class="flex items-center justify-center text-base font-medium text-slate-800 bg-white/70 backdrop-blur-sm rounded-lg py-2 px-3 shadow-sm border border-slate-100">
                         <span class="mr-2 text-red-500">✔</span> Unlimited internet
                     </div>
@@ -229,10 +465,10 @@
                 </div>
 
                 <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
-                     <a href="#get-connected" class="bg-red-600 text-white font-bold py-3 px-6 sm:py-4 sm:px-10 rounded-xl shadow-xl hover:bg-red-700 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-red-300">
+                     <a href="#get-connected" class="bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-10 rounded-xl shadow-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-red-300">
                         Get Started Now
                     </a>
-                    <a href="https://wa.me/message/B6EGDTFV7UT5J1" target="_blank" class="bg-green-500 text-white font-bold py-3 px-6 sm:py-4 sm:px-10 rounded-xl shadow-xl hover:bg-green-600 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-green-300 flex items-center">
+                    <a href="https://wa.me/message/B6EGDTFV7UT5J1" target="_blank" class="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-6 sm:py-4 sm:px-10 rounded-xl shadow-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-green-300 flex items-center">
                         Chat with us 24/7
                     </a>
                 </div>
@@ -246,50 +482,44 @@
             </div>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 text-center max-w-6xl mx-auto">
                 <div class="feature-card">
-                    <div class="text-4xl mb-4">⚡</div>
+                    <div class="icon-container">
+                        <i data-lucide="zap"></i>
+                    </div>
                     <h3 class="text-xl font-bold mb-2">Blazing-Fast Speeds</h3>
                     <p class="text-gray-600">Enjoy speeds up to 10 Gbps for 4K streaming, lag-free gaming, and smooth Browse.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="text-4xl mb-4">🛠️</div>
+                    <div class="icon-container">
+                        <i data-lucide="wrench"></i>
+                    </div>
                     <h3 class="text-xl font-bold mb-2">Free Installation & Router</h3>
                     <p class="text-gray-600">Professional setup and a complimentary Wi-Fi router included with your plan.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="text-4xl mb-4">📞</div>
+                <div class="feature-card md:hidden">
+                    <div class="icon-container">
+                        <i data-lucide="phone-off"></i>
+                    </div>
                     <h3 class="text-xl font-bold mb-2">No Landline Needed</h3>
                     <p class="text-gray-600">Enjoy dedicated fiber internet connectivity without the need for a traditional landline.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="text-4xl mb-4">📺</div>
+                    <div class="icon-container">
+                        <i data-lucide="tv"></i>
+                    </div>
                     <h3 class="text-xl font-bold mb-2">Ooredoo tv Included</h3>
                     <p class="text-gray-600">Access entertainment with Ooredoo tv App or TV box, depending on your chosen plan.</p>
                 </div>
             </div>
         </section>
 
-        <section id="additional-benefits" class="py-16 md:py-20 bg-gray-50 rounded-2xl">
-            <div class="text-center mb-12 px-4">
-                <h2 class="text-3xl font-bold tracking-tight text-slate-900">More Reasons to Love Ooredoo Home+</h2>
-                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Discover even more benefits that make Ooredoo Home+ the best choice for your home.</p>
+        <section id="ai-plan-recommender" class="py-16 md:py-20 bg-red-50 rounded-2xl text-center">
+            <div class="text-center mb-8 px-4">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900">✨ Find Your Perfect Plan with AI ✨</h2>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Tell us about your internet usage, and our AI will recommend the best Ooredoo Home+ plan for you!</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6 md:gap-8 px-4 max-w-6xl mx-auto">
-                <div class="feature-card">
-                    <div class="text-4xl mb-4">✨</div>
-                    <h3 class="text-xl font-bold mb-2">Seamless Setup</h3>
-                    <p class="text-gray-600">Our expert technicians ensure a smooth and hassle-free installation process.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="text-4xl mb-4">🌐</div>
-                    <h3 class="text-xl font-bold mb-2">Reliable Connectivity</h3>
-                    <p class="text-gray-600">Experience consistent and stable internet, powered by Qatar's leading network.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="text-4xl mb-4">📞</div>
-                    <h3 class="text-xl font-bold mb-2">24/7 Customer Support</h3>
-                    <p class="text-gray-600">Our dedicated team is always ready to assist you with any queries or issues.</p>
-                </div>
-            </div>
+            <button id="openAiRecommenderModal" class="bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-3 px-8 rounded-xl shadow-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300">
+                Get AI Recommendation
+            </button>
         </section>
 
         <section id="ooredoo-plans" class="py-16 md:py-20 bg-red-50 rounded-2xl">
@@ -307,7 +537,7 @@
                 <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Fill out the form below and our team will get in touch with you to help set up your new Home WiFi connection.</p>
             </div>
             <div class="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-100">
-                <form data-netlify="true" name="contactForm" class="space-y-6">
+                <form name="contactForm" class="space-y-6">
                     <div hidden>
                         <label>
                             Don’t fill this out if you’re human: <input name="bot-field" />
@@ -349,6 +579,7 @@
                     <div>
                         <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-transform transform hover:scale-105">
                             Submit Details
+                            <span id="formSpinner" class="loading-spinner hidden"></span>
                         </button>
                     </div>
                     </form>
@@ -472,24 +703,72 @@
                 <a href="https://alaneesqatar.qa/" target="_blank" class="text-sm text-white hover:underline mt-1">Visit Our Website</a>
             </div>
             <div class="flex flex-col items-center md:items-end text-center md:text-right">
-                <p class="text-white">&copy; 2025 Home WiFi @310 Qr monthly. Al Anees.</p>
+                <p class="text-white">&copy; <span id="current-year"></span> Home WiFi @310 Qr monthly. Al Anees.</p>
                 <p class="mt-2 text-sm">
                     <a href="https://alaneesqatar.qa/" target="_blank" class="hover:text-red-200">alanees electronics website</a> | Follow Us:
                     <a href="#" class="hover:text-red-200">@alaneeselectronics</a>
                 </p>
+                <p class="text-xs mt-2">Your User ID: <span id="current-user-id">Loading...</span></p>
             </div>
         </div>
     </footer>
+
+    <div id="aiRecommenderModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="closeAiRecommenderModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Find Your Perfect Plan</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="usageDescription" class="block text-sm font-medium text-gray-700">Describe your internet usage:</label>
+                    <textarea id="usageDescription" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="e.g., I stream 4K movies, play online games, and have 3-4 devices connected."></textarea>
+                </div>
+                <button id="getAiRecommendationBtn" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-transform transform hover:scale-105">
+                    Get Recommendation
+                    <span id="aiSpinner" class="loading-spinner hidden"></span>
+                </button>
+                <div id="aiRecommendationOutput" class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md text-gray-700 hidden">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="chatbotFab" class="chatbot-fab">
+        💬
+    </div>
+
+    <div id="chatbotModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="closeChatbotModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            <h2 class="text-xl font-bold text-center mb-4 text-gray-800">Ooredoo Assistant</h2>
+            <div id="chatbox" class="flex-grow overflow-y-auto">
+                </div>
+            <div id="chat-input-container">
+                <textarea id="chatInput" rows="1" placeholder="Type your message..." class="flex-grow"></textarea>
+                <button id="sendChatBtn">Send</button>
+            </div>
+        </div>
+    </div>
 
     <div id="checkoutModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[1001] hidden">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full mx-4 relative">
             <button id="closeModalButton" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
             <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Checkout Form</h2>
-            <form data-netlify="true" name="checkoutFormModal" class="space-y-6">
+            <form name="checkoutFormModal" class="space-y-6">
                 <div hidden>
                     <label>
                         Don’t fill this out if you’re human: <input name="bot-field" />
                     </label>
+                </div>
+                <div>
+                    <label for="planSelectionModal" class="block text-sm font-medium text-gray-700">Select Plan</label>
+                    <select id="planSelectionModal" name="planSelection" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm">
+                        <option value="" disabled selected>Select a plan</option>
+                        <option value="Home+Go">Home+Go</option>
+                        <option value="Home+Prime">Home+Prime</option>
+                        <option value="Home+Entertainment">Home+Entertainment</option>
+                        <option value="Home+Super">Home+Super</option>
+                        <option value="Home+ELITE">Home+ELITE</option>
+                    </select>
                 </div>
                 <div>
                     <label for="qatarIdModal" class="block text-sm font-medium text-gray-700">Qatar ID Number</label>
@@ -518,6 +797,7 @@
                 <div>
                     <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-transform transform hover:scale-105">
                         Submit Details
+                        <span id="formSpinnerModal" class="loading-spinner hidden"></span>
                     </button>
                 </div>
             </form>
@@ -528,294 +808,670 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
-    <script>
-        // Changed to window.onload to ensure all scripts are loaded before execution
+    <script type="module">
+        // Import Firebase functions after they are globally exposed by the first script tag
+        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         window.onload = function () {
-            // Ooredoo Home+ Plans Data
-            const ooredooPlans = [
-                {
-                    name: "GO",
-                    speed: "1 Gbps",
-                    monthlyFee: "QR 310",
-                    contract: "Over 12 months",
-                    features: [
-                        "Wi-Fi router",
-                        "Ooredoo tv App",
-                        "0 credits"
-                    ]
-                },
-                {
-                    name: "GO Ent",
-                    speed: "1 Gbps",
-                    monthlyFee: "QR 320",
-                    contract: "Over 12 months",
-                    features: [
-                        "Wi-Fi router",
-                        "Ooredoo tv App",
-                        "5 credits"
-                    ]
-                },
-                {
-                    name: "Prime",
-                    speed: "1 Gbps",
-                    monthlyFee: "QR 455",
-                    contract: "Over 12 months",
-                    features: [
-                        "2 Wi-Fi routers",
-                        "Ooredoo tv box",
-                        "40 credits"
-                    ]
-                },
-                {
-                    name: "Super",
-                    speed: "1 Gbps",
-                    monthlyFee: "QR 950",
-                    contract: "Over 12 months",
-                    features: [
-                        "Fibre connected rooms",
-                        "2 Ooredoo tv boxes",
-                        "60 credits"
-                    ]
-                },
-                {
-                    name: "ELITE",
-                    speed: "10 Gbps",
-                    monthlyFee: "QR 6500",
-                    contract: "Over 12 months",
-                    features: [
-                        "5 Fibre connected rooms",
-                        "Ooredoo tv boxes",
-                        "100 credits"
-                    ]
+            // Ensure Firebase is initialized before proceeding with Firebase-dependent logic
+            const checkFirebaseReady = setInterval(() => {
+                if (window.db && window.auth && window.userId) {
+                    clearInterval(checkFirebaseReady);
+                    console.log("Firebase is ready in window.onload. User ID:", window.userId);
+                    initializePageLogic();
                 }
-            ];
+            }, 100); // Check every 100ms
 
-            const plansGrid = document.getElementById('plans-grid');
-            if (plansGrid) {
-                ooredooPlans.forEach(plan => {
-                    const planCard = document.createElement('div');
-                    planCard.className = 'plan-card'; // Use the combined class
-                    planCard.innerHTML = `
-                        <h3 class="text-gray-900">${plan.name}</h3>
-                        <p class="speed">${plan.speed}</p>
-                        <p class="price">${plan.monthlyFee}</p>
-                        <p class="text-sm text-gray-500 mt-1">${plan.contract}</p>
-                        <ul class="mt-4 text-sm">
-                            ${plan.features.map(feature => `
-                                <li>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                    </svg>
-                                    ${feature}
-                                </li>
-                            `).join('')}
-                        </ul>
-                    `;
-                    plansGrid.appendChild(planCard);
-                });
-            }
-
-            // Comparison Chart
-            const ctx = document.getElementById('comparisonChart');
-            if(ctx) {
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Price (QR/Month)', 'Max Speed (Mbps)'],
-                        datasets: [{
-                            label: 'Home WiFi @310 Qr monthly',
-                            data: [310, 1000], // Ooredoo speed is 1 Gbps = 1000 Mbps
-                            backgroundColor: 'rgb(220, 38, 38)', // red-600
-                            borderColor: 'rgb(185, 28, 28)', // red-700
-                            borderWidth: 1,
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Competitor', // Changed label from Competitor B to Competitor
-                            data: [299, 100], // Vodafone price and speed
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)', // blue-500 for Competitor
-                            borderColor: 'rgb(37, 99, 235)', // blue-600
-                            borderWidth: 1,
-                            borderRadius: 4
-                        }]
+            function initializePageLogic() {
+                // Ooredoo Home+ Plans Data
+                const ooredooPlans = [
+                    {
+                        name: "GO",
+                        speed: "1 Gbps",
+                        monthlyFee: "QR 310",
+                        contract: "Over 12 months",
+                        features: [
+                            "Wi-Fi router",
+                            "Ooredoo tv App",
+                            "0 credits"
+                        ]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
-                                }
+                    {
+                        name: "GO Ent",
+                        speed: "1 Gbps",
+                        monthlyFee: "QR 320",
+                        contract: "Over 12 months",
+                        features: [
+                            "Wi-Fi router",
+                            "Ooredoo tv App",
+                            "5 credits"
+                        ]
+                    },
+                    {
+                        name: "Prime",
+                        speed: "1 Gbps",
+                        monthlyFee: "QR 455",
+                        contract: "Over 12 months",
+                        features: [
+                            "2 Wi-Fi routers",
+                            "Ooredoo tv box",
+                            "40 credits"
+                        ]
+                    },
+                    {
+                        name: "Super",
+                        speed: "1 Gbps",
+                        monthlyFee: "QR 950",
+                        contract: "Over 12 months",
+                        features: [
+                            "Fibre connected rooms",
+                            "2 Ooredoo tv boxes",
+                            "60 credits"
+                        ]
+                    },
+                    {
+                        name: "ELITE",
+                        speed: "10 Gbps",
+                        monthlyFee: "QR 6500",
+                        contract: "Over 12 months",
+                        features: [
+                            "5 Fibre connected rooms",
+                            "Ooredoo tv boxes",
+                            "100 credits"
+                        ]
+                    }
+                ];
+
+                const plansGrid = document.getElementById('plans-grid');
+                if (plansGrid) {
+                    ooredooPlans.forEach(plan => {
+                        const planCard = document.createElement('div');
+                        planCard.className = 'plan-card'; // Use the combined class
+                        planCard.innerHTML = `
+                            <h3 class="text-gray-900">${plan.name}</h3>
+                            <p class="speed">${plan.speed}</p>
+                            <p class="price">${plan.monthlyFee}</p>
+                            <p class="text-sm text-gray-500 mt-1">${plan.contract}</p>
+                            <ul class="mt-4 text-sm">
+                                ${plan.features.map(feature => `
+                                    <li>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                        </svg>
+                                        ${feature}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        `;
+                        plansGrid.appendChild(planCard);
+                    });
+                }
+
+                // Comparison Chart
+                const ctx = document.getElementById('comparisonChart');
+                if(ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Price (QR/Month)', 'Max Speed (Mbps)'],
+                            datasets: [{
+                                label: 'Home WiFi @310 Qr monthly',
+                                data: [310, 1000], // Ooredoo speed is 1 Gbps = 1000 Mbps
+                                backgroundColor: 'rgb(220, 38, 38)', // red-600
+                                borderColor: 'rgb(185, 28, 28)', // red-700
+                                borderWidth: 1,
+                                borderRadius: 4
                             },
-                             y: {
-                                grid: {
-                                    display: false
-                                }
-                            }
+                            {
+                                label: 'Competitor', // Changed label from Competitor B to Competitor
+                                data: [299, 100], // Vodafone price and speed
+                                backgroundColor: 'rgba(59, 130, 246, 0.7)', // blue-500 for Competitor
+                                borderColor: 'rgb(37, 99, 235)', // blue-600
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }]
                         },
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.05)'
+                                    }
+                                },
+                                 y: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
                             },
-                            tooltip: {
-                                backgroundColor: '#1e293b',
-                                titleFont: {
-                                    weight: 'bold'
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
                                 },
-                                bodyFont: {
-                                    size: 14
-                                },
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.x !== null) {
-                                            if(context.dataIndex === 0) { // Price row
-                                                label += context.parsed.x + ' QR';
-                                            } else { // Speed row
-                                                label += context.parsed.x + ' Mbps';
+                                tooltip: {
+                                    backgroundColor: '#1e293b',
+                                    titleFont: {
+                                        weight: 'bold'
+                                    },
+                                    bodyFont: {
+                                        size: 14
+                                    },
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            if (label) {
+                                                label += ': ';
                                             }
+                                            if (context.parsed.x !== null) {
+                                                if(context.dataIndex === 0) { // Price row
+                                                    label += context.parsed.x + ' QR';
+                                                } else { // Speed row
+                                                    label += context.parsed.x + ' Mbps';
+                                                }
+                                            }
+                                            return label;
                                         }
-                                        return label;
                                     }
                                 }
                             }
                         }
-                    }
-                });
-            }
-
-            // Header scroll hide/show effect
-            const mainHeader = document.getElementById('main-header');
-            let lastScrollY = window.scrollY;
-
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > lastScrollY && window.scrollY > mainHeader.offsetHeight) {
-                    // Scrolling down and past header height
-                    mainHeader.classList.add('header-hidden');
-                    mainHeader.classList.remove('header-shadow'); // Remove shadow when hidden
-                } else {
-                    // Scrolling up or at the very top
-                    mainHeader.classList.remove('header-hidden');
-                    if (window.scrollY > 0) {
-                        mainHeader.classList.add('header-shadow'); // Add shadow back when visible and scrolled
-                    } else {
-                        mainHeader.classList.remove('header-shadow'); // No shadow at top
-                    }
+                    });
                 }
-                lastScrollY = window.scrollY;
-            });
 
-            // Form submission handling for the existing form
-            const contactForm = document.forms['contactForm'];
-            const successMessage = document.getElementById('successMessage');
+                // Header scroll hide/show effect
+                const mainHeader = document.getElementById('main-header');
+                let lastScrollY = window.scrollY;
 
-            if (contactForm && successMessage) {
-                contactForm.addEventListener('submit', async function(event) {
-                    event.preventDefault(); // Prevent default form submission
-
-                    const formData = new FormData(contactForm);
-
-                    try {
-                        await fetch(contactForm.action, {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        contactForm.style.display = 'none'; // Hide the form
-                        successMessage.classList.remove('hidden'); // Show the success message
-                        contactForm.reset(); // Clear form fields
-                    } catch (error) {
-                        console.error('Form submission error:', error);
+                window.addEventListener('scroll', () => {
+                    if (window.scrollY > lastScrollY && window.scrollY > mainHeader.offsetHeight) {
+                        // Scrolling down and past header height
+                        mainHeader.classList.add('header-hidden');
+                        mainHeader.classList.remove('header-shadow'); // Remove shadow when hidden
+                    } else {
+                        // Scrolling up or at the very top
+                        mainHeader.classList.remove('header-hidden');
+                        if (window.scrollY > 0) {
+                            mainHeader.classList.add('header-shadow'); // Add shadow back when visible and scrolled
+                        } else {
+                            mainHeader.classList.remove('header-shadow'); // No shadow at top
+                        }
                     }
-                });
-            }
-
-            // Modal functionality
-            const openCheckoutModalBtn = document.getElementById('openCheckoutModal');
-            const checkoutModal = document.getElementById('checkoutModal');
-            const closeModalButton = document.getElementById('closeModalButton');
-            const checkoutFormModal = document.forms['checkoutFormModal'];
-            const successMessageModal = document.getElementById('successMessageModal');
-
-            if (openCheckoutModalBtn && checkoutModal && closeModalButton && checkoutFormModal && successMessageModal) {
-                openCheckoutModalBtn.addEventListener('click', function(event) {
-                    event.preventDefault(); // Prevent default link behavior
-                    checkoutModal.classList.remove('hidden'); // Show the modal
+                    lastScrollY = window.scrollY;
                 });
 
-                closeModalButton.addEventListener('click', function() {
-                    checkoutModal.classList.add('hidden'); // Hide the modal
-                    // Reset modal form and message when closed
-                    checkoutFormModal.reset();
-                    checkoutFormModal.style.display = 'block';
-                    successMessageModal.classList.add('hidden');
-                });
+                // Form submission handling for the existing form
+                const contactForm = document.forms['contactForm'];
+                const successMessage = document.getElementById('successMessage');
+                const formSpinner = document.getElementById('formSpinner');
 
-                // Close modal if user clicks outside of it
-                checkoutModal.addEventListener('click', function(event) {
-                    if (event.target === checkoutModal) {
-                        checkoutModal.classList.add('hidden');
+                if (contactForm && successMessage && formSpinner) {
+                    contactForm.addEventListener('submit', async function(event) {
+                        event.preventDefault(); // Prevent default form submission
+                        formSpinner.classList.remove('hidden'); // Show spinner
+
+                        // Simulate a network request with a delay
+                        setTimeout(() => {
+                            contactForm.style.display = 'none'; // Hide the form
+                            successMessage.classList.remove('hidden'); // Show the success message
+                            contactForm.reset(); // Clear form fields
+                            formSpinner.classList.add('hidden'); // Hide spinner
+                        }, 1500); // Simulate 1.5 seconds of loading
+                    });
+                }
+
+                // Modal functionality
+                const openCheckoutModalBtn = document.getElementById('openCheckoutModal');
+                const checkoutModal = document.getElementById('checkoutModal');
+                const closeModalButton = document.getElementById('closeModalButton');
+                const checkoutFormModal = document.forms['checkoutFormModal'];
+                const successMessageModal = document.getElementById('successMessageModal');
+                const formSpinnerModal = document.getElementById('formSpinnerModal');
+
+
+                if (openCheckoutModalBtn && checkoutModal && closeModalButton && checkoutFormModal && successMessageModal && formSpinnerModal) {
+                    openCheckoutModalBtn.addEventListener('click', function(event) {
+                        event.preventDefault(); // Prevent default link behavior
+                        checkoutModal.classList.remove('hidden'); // Show the modal
+                    });
+
+                    closeModalButton.addEventListener('click', function() {
+                        checkoutModal.classList.add('hidden'); // Hide the modal
                         // Reset modal form and message when closed
                         checkoutFormModal.reset();
                         checkoutFormModal.style.display = 'block';
                         successMessageModal.classList.add('hidden');
-                    }
-                });
+                    });
 
-                // Form submission handling for the modal form
-                checkoutFormModal.addEventListener('submit', async function(event) {
-                    event.preventDefault(); // Prevent default form submission
-
-                    const formData = new FormData(checkoutFormModal);
-
-                    try {
-                        await fetch(checkoutFormModal.action, {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        checkoutFormModal.style.display = 'none'; // Hide the form
-                        successMessageModal.classList.remove('hidden'); // Show the success message
-                        checkoutFormModal.reset(); // Clear form fields
-                    } catch (error) {
-                        console.error('Modal form submission error:', error);
-                    }
-                });
-            }
-
-            // FAQ Accordion functionality
-            const accordionButtons = document.querySelectorAll('.accordion-button');
-            accordionButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const content = button.nextElementSibling;
-                    const icon = button.querySelector('.accordion-icon');
-
-                    // Close other open accordions
-                    accordionButtons.forEach(otherButton => {
-                        if (otherButton !== button) {
-                            otherButton.nextElementSibling.classList.remove('active');
-                            otherButton.nextElementSibling.style.maxHeight = null;
-                            otherButton.querySelector('.accordion-icon').classList.remove('rotate');
+                    // Close modal if user clicks outside of it
+                    checkoutModal.addEventListener('click', function(event) {
+                        if (event.target === checkoutModal) {
+                            checkoutModal.classList.add('hidden');
+                            // Reset modal form and message when closed
+                            checkoutFormModal.reset();
+                            checkoutFormModal.style.display = 'block';
+                            successMessageModal.classList.add('hidden');
                         }
                     });
 
-                    // Toggle current accordion
-                    content.classList.toggle('active');
-                    icon.classList.toggle('rotate');
-                    if (content.style.maxHeight) {
-                        content.style.maxHeight = null;
-                    } else {
-                        content.style.maxHeight = content.scrollHeight + "px";
+                    // Form submission handling for the modal form
+                    checkoutFormModal.addEventListener('submit', async function(event) {
+                        event.preventDefault(); // Prevent default form submission
+                        formSpinnerModal.classList.remove('hidden'); // Show spinner
+
+                        // Simulate a network request with a delay
+                        setTimeout(() => {
+                            checkoutFormModal.style.display = 'none'; // Hide the form
+                            successMessageModal.classList.remove('hidden'); // Show the success message
+                            checkoutFormModal.reset(); // Clear form fields
+                            formSpinnerModal.classList.add('hidden'); // Hide spinner
+                        }, 1500); // Simulate 1.5 seconds of loading
+                    });
+                }
+
+                // AI Plan Recommender Modal Logic
+                const openAiRecommenderModalBtn = document.getElementById('openAiRecommenderModal');
+                const aiRecommenderModal = document.getElementById('aiRecommenderModal');
+                const closeAiRecommenderModalBtn = document.getElementById('closeAiRecommenderModal');
+                const usageDescriptionInput = document.getElementById('usageDescription');
+                const getAiRecommendationBtn = document.getElementById('getAiRecommendationBtn');
+                const aiSpinner = document.getElementById('aiSpinner');
+                const aiRecommendationOutput = document.getElementById('aiRecommendationOutput');
+
+                if (openAiRecommenderModalBtn && aiRecommenderModal && closeAiRecommenderModalBtn && usageDescriptionInput && getAiRecommendationBtn && aiSpinner && aiRecommendationOutput) {
+
+                    openAiRecommenderModalBtn.addEventListener('click', () => {
+                        aiRecommenderModal.classList.add('open');
+                        aiRecommenderModal.classList.remove('hidden');
+                        // Reset fields and output when opening
+                        usageDescriptionInput.value = '';
+                        aiRecommendationOutput.innerHTML = ''; // Clear previous output
+                        aiRecommendationOutput.classList.add('hidden'); // Ensure it's hidden
+                    });
+
+                    closeAiRecommenderModalBtn.addEventListener('click', () => {
+                        aiRecommenderModal.classList.remove('open');
+                        aiRecommenderModal.classList.add('hidden');
+                    });
+
+                    aiRecommenderModal.addEventListener('click', (event) => {
+                        if (event.target === aiRecommenderModal) {
+                            aiRecommenderModal.classList.remove('open');
+                            aiRecommenderModal.classList.add('hidden');
+                        }
+                    });
+
+                    getAiRecommendationBtn.addEventListener('click', async () => {
+                        const userUsage = usageDescriptionInput.value.trim();
+                        if (!userUsage) {
+                            aiRecommendationOutput.innerHTML = '<p class="text-red-500">Please describe your internet usage to get a recommendation.</p>';
+                            aiRecommendationOutput.classList.remove('hidden');
+                            return;
+                        }
+
+                        aiSpinner.classList.remove('hidden');
+                        aiRecommendationOutput.classList.add('hidden'); // Hide before new request
+                        aiRecommendationOutput.innerHTML = ''; // Clear previous output
+
+                        const prompt = `You are an Ooredoo Home+ plan advisor. Based on the user's description and the following available plans, recommend the most suitable plan. Explain your reasoning clearly and concisely, focusing on how the plan's speed, features (like multiple Wi-Fi routers or fibre-connected rooms), and unlimited internet contribute to best performance for the user's needs for activities such as 4K streaming, online gaming, video calls, and supporting multiple connected devices. If no plan perfectly fits, suggest the closest one and mention any trade-offs. Do not invent plans or features not listed. Keep the response helpful and easy to understand.
+
+User's internet usage: "${userUsage}"
+
+Available Ooredoo Home+ Plans:
+${JSON.stringify(ooredooPlans, null, 2)}
+
+Please provide your recommendation in a friendly tone.`;
+
+                        let chatHistory = [];
+                        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                        const payload = { contents: chatHistory };
+                        const apiKey = ""; // Leave as-is, Canvas will provide at runtime
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                        try {
+                            const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            const result = await response.json();
+
+                            if (result.candidates && result.candidates.length > 0 &&
+                                result.candidates[0].content && result.candidates[0].content.parts &&
+                                result.candidates[0].content.parts.length > 0) {
+                                let text = result.candidates[0].content.parts[0].text;
+
+                                // Convert Markdown bold (**text**) to HTML strong (<strong>text</strong>)
+                                text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                                aiRecommendationOutput.innerHTML = `<p>${text}</p>`;
+                            } else {
+                                aiRecommendationOutput.innerHTML = '<p class="text-red-500">Sorry, I could not generate a recommendation at this time. Please try again.</p>';
+                                console.error("Unexpected API response structure:", result);
+                            }
+                        } catch (error) {
+                            aiRecommendationOutput.innerHTML = '<p class="text-red-500">An error occurred while fetching the recommendation. Please try again later.</p>';
+                            console.error('Gemini API error:', error);
+                        } finally {
+                            aiSpinner.classList.add('hidden');
+                            aiRecommendationOutput.classList.remove('hidden'); // Show output after processing
+                        }
+                    });
+                }
+
+
+                // FAQ Accordion functionality
+                const accordionButtons = document.querySelectorAll('.accordion-button');
+                accordionButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const content = button.nextElementSibling;
+                        const icon = button.querySelector('.accordion-icon');
+
+                        // Close other open accordions
+                        accordionButtons.forEach(otherButton => {
+                            if (otherButton !== button) {
+                                otherButton.nextElementSibling.classList.remove('active');
+                                otherButton.nextElementSibling.style.maxHeight = null;
+                                otherButton.querySelector('.accordion-icon').classList.remove('rotate');
+                            }
+                        });
+
+                        // Toggle current accordion
+                        content.classList.toggle('active');
+                        icon.classList.toggle('rotate');
+                        if (content.style.maxHeight) {
+                            content.style.maxHeight = null;
+                        } else {
+                            content.style.maxHeight = content.scrollHeight + "px";
+                        }
+                    });
+                });
+
+                // Smooth scrolling for anchor links
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+
+                        document.querySelector(this.getAttribute('href')).scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    });
+                });
+
+                // Set current year in footer
+                const currentYearSpan = document.getElementById('current-year');
+                if (currentYearSpan) {
+                    currentYearSpan.textContent = new Date().getFullYear();
+                }
+
+                // Chatbot Logic
+                const chatbotFab = document.getElementById('chatbotFab');
+                const chatbotModal = document.getElementById('chatbotModal');
+                const closeChatbotModalBtn = document.getElementById('closeChatbotModal');
+                const chatbox = document.getElementById('chatbox');
+                const chatInput = document.getElementById('chatInput');
+                const sendChatBtn = document.getElementById('sendChatBtn');
+
+                let chatHistory = [];
+                let orderInProgress = false; // States: false (general chat), true (collecting fields), 'confirming'
+                let currentOrderDetails = {};
+                let currentQuestionIndex = -1; // To track which form field we are asking for
+                const orderQuestions = [
+                    { key: 'planSelection', prompt: 'Which Ooredoo Home+ plan are you interested in? (e.g., GO, Prime, ELITE)' },
+                    { key: 'qatarId', prompt: 'Please provide your Qatar ID number (all digits).', validate: (input) => /^\d+$/.test(input) && input.length >= 5 }, // Basic check for digits
+                    { key: 'buildingNumber', prompt: 'What is your Building Number?' },
+                    { key: 'zoneNumber', prompt: 'What is your Zone Number?' },
+                    { key: 'streetNumber', prompt: 'What is your Street Number?' },
+                    { key: 'electricityNumber', prompt: 'What is your Electricity Number?' },
+                    { key: 'contactNumber', prompt: 'Finally, what is your Contact Number? (e.g., 66xxxxxx or 77xxxxxx)', validate: (input) => /^\d{8}$/.test(input) } // 8 digits
+                ];
+
+                const displayMessage = (message, sender) => {
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('chat-message', sender);
+                    messageElement.innerHTML = message; // Use innerHTML to render bold tags and lists
+                    chatbox.appendChild(messageElement);
+                    chatbox.scrollTop = chatbox.scrollHeight; // Scroll to bottom
+                };
+
+                // New function for typing effect
+                const displayMessageTyping = (message, sender, delay = 20) => {
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('chat-message', sender);
+                    const textSpan = document.createElement('span');
+                    messageElement.appendChild(textSpan);
+                    chatbox.appendChild(messageElement);
+                    chatbox.scrollTop = chatbox.scrollHeight;
+
+                    let i = 0;
+                    const typingInterval = setInterval(() => {
+                        if (i < message.length) {
+                            // Check if the current character is part of an HTML tag
+                            if (message.substring(i, i + 1) === '<') {
+                                // Find the end of the tag
+                                const tagEnd = message.indexOf('>', i);
+                                if (tagEnd !== -1) {
+                                    textSpan.innerHTML += message.substring(i, tagEnd + 1);
+                                    i = tagEnd + 1;
+                                } else {
+                                    // Fallback if tag is malformed, just print character
+                                    textSpan.innerHTML += message.charAt(i);
+                                    i++;
+                                }
+                            } else {
+                                textSpan.innerHTML += message.charAt(i);
+                                i++;
+                            }
+                            chatbox.scrollTop = chatbox.scrollHeight; // Keep scrolling to bottom
+                        } else {
+                            clearInterval(typingInterval);
+                            // Remove typing cursor if it was added
+                            const cursor = messageElement.querySelector('.typing-cursor');
+                            if (cursor) {
+                                cursor.remove();
+                            }
+                        }
+                    }, delay);
+
+                    // Add a temporary blinking cursor
+                    const cursorSpan = document.createElement('span');
+                    cursorSpan.classList.add('typing-cursor');
+                    cursorSpan.textContent = '|';
+                    messageElement.appendChild(cursorSpan);
+                };
+
+
+                const sendToGemini = async (message) => {
+                    chatHistory.push({ role: "user", parts: [{ text: message }] });
+                    displayMessage(message, 'user');
+
+                    const payload = { contents: chatHistory };
+                    // The API key is provided by the Canvas environment at runtime for security.
+                    // If you are running this code outside Canvas, you would need to replace
+                    // `""` with your actual Gemini API key.
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            console.error('Gemini API response error:', response.status, errorData);
+                            displayMessageTyping(`I'm sorry, I encountered an issue connecting to the AI. Please try again later. (Error: ${response.status})`, 'ai');
+                            chatHistory.pop(); // Remove user message from history if API failed
+                            return;
+                        }
+
+                        const result = await response.json();
+
+                        if (result.candidates && result.candidates.length > 0 &&
+                            result.candidates[0].content && result.candidates[0].content.parts &&
+                            result.candidates[0].content.parts.length > 0) {
+                            let aiText = result.candidates[0].content.parts[0].text;
+                            aiText = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Convert Markdown bold
+                            chatHistory.push({ role: "model", parts: [{ text: aiText }] });
+                            displayMessageTyping(aiText, 'ai'); // Use typing effect for AI response
+                        } else {
+                            const errorMsg = "Sorry, I'm having trouble understanding. Can you please rephrase?";
+                            chatHistory.push({ role: "model", parts: [{ text: errorMsg }] });
+                            displayMessageTyping(errorMsg, 'ai'); // Use typing effect for error
+                            console.error("Unexpected API response structure:", result);
+                        }
+                    } catch (error) {
+                        const errorMsg = "I apologize, but I encountered a network error. Please check your connection and try again.";
+                        chatHistory.push({ role: "model", parts: [{ text: errorMsg }] });
+                        displayMessageTyping(errorMsg, 'ai'); // Use typing effect for error
+                        console.error('Gemini API fetch error:', error);
+                    }
+                };
+
+                const processChatInput = async () => {
+                    const message = chatInput.value.trim();
+                    chatInput.value = ''; // Clear input immediately
+
+                    if (!message) return;
+
+                    if (orderInProgress === true) { // State: collecting specific form fields
+                        const currentQuestion = orderQuestions[currentQuestionIndex];
+                        const isValid = currentQuestion.validate ? currentQuestion.validate(message) : true;
+
+                        if (isValid) {
+                            currentOrderDetails[currentQuestion.key] = message;
+                            currentQuestionIndex++;
+
+                            if (currentQuestionIndex < orderQuestions.length) {
+                                // Ask next question
+                                displayMessage(message, 'user'); // Display user's reply
+                                displayMessageTyping(orderQuestions[currentQuestionIndex].prompt, 'ai'); // Use typing effect
+                            } else {
+                                // All questions answered, confirm and submit order
+                                displayMessage(message, 'user'); // Display last user's reply
+                                displayMessageTyping("Thank you! I have all the details. Please confirm your order details:", 'ai'); // Use typing effect
+                                let confirmationText = "<ul>";
+                                for (const key in currentOrderDetails) {
+                                    confirmationText += `<li><strong>${key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong> ${currentOrderDetails[key]}</li>`;
+                                }
+                                confirmationText += "</ul>";
+                                confirmationText += "<p>Is this correct? (Yes/No)</p>";
+                                displayMessageTyping(confirmationText, 'ai'); // Use typing effect
+                                orderInProgress = 'confirming'; // Change state to confirming
+                            }
+                        } else {
+                            // Validation failed for the current question
+                            displayMessage(message, 'user'); // Display user's invalid input
+                            displayMessageTyping(`That doesn't look like a valid ${currentQuestion.key.replace(/([A-Z])/g, ' $1').toLowerCase()}. Please try again.`, 'ai'); // Use typing effect
+                            // Stay on the same question, currentQuestionIndex does not increment
+                        }
+
+                    } else if (orderInProgress === 'confirming') { // State: confirming collected details
+                        displayMessage(message, 'user'); // Display user's reply
+                        if (message.toLowerCase() === 'yes' || message.toLowerCase().includes('yes')) {
+                            displayMessageTyping("Great! Submitting your order now...", 'ai'); // Use typing effect
+                            await submitOrderFromChatbot(currentOrderDetails);
+                            orderInProgress = false; // Reset state
+                            currentOrderDetails = {}; // Clear collected data
+                            currentQuestionIndex = -1; // Reset question index
+                        } else if (message.toLowerCase() === 'no' || message.toLowerCase().includes('no')) {
+                            displayMessageTyping("No problem. Let's restart the order process. What can I help you with today?", 'ai'); // Use typing effect
+                            orderInProgress = false;
+                            currentOrderDetails = {};
+                            currentQuestionIndex = -1;
+                            chatHistory = []; // Reset chat history for a fresh start
+                        } else {
+                            displayMessageTyping("Please reply with 'Yes' to confirm or 'No' to restart the order.", 'ai'); // Use typing effect
+                        }
+                    } else { // State: general chat or initiating new order
+                        if (message.toLowerCase().includes('order') || message.toLowerCase().includes('plan') || message.toLowerCase().includes('connect')) {
+                            orderInProgress = true;
+                            currentQuestionIndex = 0;
+                            chatHistory = []; // Clear history for new order flow to avoid confusion for the LLM
+                            displayMessage(message, 'user'); // Display user's initial order message
+                            displayMessageTyping("I can help you place an order for a new Home+ plan! " + orderQuestions[currentQuestionIndex].prompt, 'ai'); // Use typing effect
+                        } else {
+                            await sendToGemini(message);
+                        }
+                    }
+                };
+
+                const submitOrderFromChatbot = async (orderDetails) => {
+                    if (!window.db || !window.userId) {
+                        displayMessageTyping("Error: Firebase is not fully initialized. Cannot save order. Please refresh the page.", 'ai'); // Use typing effect
+                        console.error("Firebase DB or User ID not available for order submission.");
+                        return;
+                    }
+
+                    try {
+                        // Assuming __app_id is defined in the Canvas environment
+                        const ordersCollectionRef = collection(window.db, `artifacts/${__app_id}/public/data/orders`);
+                        await addDoc(ordersCollectionRef, {
+                            ...orderDetails,
+                            userId: window.userId,
+                            timestamp: serverTimestamp()
+                        });
+                        displayMessageTyping("Your order has been successfully placed and saved! An agent will contact you shortly to finalize the details.", 'ai'); // Use typing effect
+
+                        // Optionally, populate the hidden form elements and trigger its "success" state for visual consistency
+                        const form = document.forms['contactForm'];
+                        if (form) {
+                            // Populate the hidden form fields if needed for display purposes, though it's not strictly "submitting" it to Netlify
+                            for (const key in orderDetails) {
+                                const input = form.elements[key];
+                                if (input) {
+                                    input.value = orderDetails[key];
+                                }
+                            }
+                            form.style.display = 'none';
+                            document.getElementById('successMessage').classList.remove('hidden');
+                        }
+
+                    } catch (error) {
+                        displayMessageTyping("There was an error placing your order. Please try again or contact support directly.", 'ai'); // Use typing effect
+                        console.error("Error saving order to Firestore:", error);
+                    }
+                };
+
+
+                chatbotFab.addEventListener('click', () => {
+                    chatbotModal.classList.add('open');
+                    chatbotModal.classList.remove('hidden');
+                    chatbox.innerHTML = ''; // Clear chat history on open
+                    chatHistory = []; // Reset chat history for Gemini API
+                    orderInProgress = false; // Reset order state
+                    currentOrderDetails = {}; // Clear collected data
+                    currentQuestionIndex = -1; // Reset question index
+                    displayMessageTyping("Hello! I'm your Ooredoo Assistant. I can help you find information or place an order for a Home+ plan. <br><br>To start an order, just type something like 'I want to order a plan'.", 'ai'); // Use typing effect for initial message
+                });
+
+                closeChatbotModalBtn.addEventListener('click', () => {
+                    chatbotModal.classList.remove('open');
+                    chatbotModal.classList.add('hidden');
+                });
+
+                chatbotModal.addEventListener('click', (event) => {
+                    if (event.target === chatbotModal) {
+                        chatbotModal.classList.remove('open');
+                        chatbotModal.classList.add('hidden');
                     }
                 });
-            });
+
+                sendChatBtn.addEventListener('click', processChatInput);
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault(); // Prevent new line
+                        processChatInput();
+                    }
+                });
+            } // End of initializePageLogic
         }; // End of window.onload function
     </script>
 
