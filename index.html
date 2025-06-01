@@ -8,11 +8,16 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f9fafb; /* bg-gray-50 */
+            background-color: #f8fafc; /* bg-slate-50 for a softer background */
+            color: #334155; /* slate-700 for main text */
+        }
+        /* New style for header logo fonts */
+        .header-logo-fonts {
+            font-family: 'Roboto', sans-serif;
         }
         .chart-container {
             position: relative;
@@ -28,68 +33,70 @@
                 height: 400px;
             }
         }
-        .plan-card, .feature-card { /* Combined styling for similar card effects */
+        .plan-card, .feature-card, .testimonial-card { /* Combined styling for similar card effects */
             background-color: #ffffff;
             padding: 1.5rem; /* Default smaller padding for mobile */
             border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08); /* More pronounced, professional shadow */
+            border: 1px solid #e2e8f0; /* slate-200 */
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; /* Added transition for shadow */
-            width: 100%; /* Ensure it takes full width of its grid cell */
-            max-width: 300px; /* Limit individual card width */
-            margin-left: auto; /* Center the card if it's smaller than its cell */
-            margin-right: auto; /* Center the card if it's smaller than its cell */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            width: 100%;
+            max-width: 380px; /* Increased max-width for cards */
+            margin-left: auto; /* Center individual cards within their grid cells */
+            margin-right: auto;
         }
-        .plan-card:hover, .feature-card:hover {
-            transform: translateY(-5px) scale(1.02); /* Slightly more pronounced hover */
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); /* Larger shadow on hover */
+        .plan-card:hover, .feature-card:hover, .testimonial-card:hover {
+            transform: translateY(-8px) scale(1.02); /* Slightly more pronounced hover */
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15); /* Larger shadow on hover */
         }
         @media (min-width: 640px) { /* sm breakpoint */
-            .plan-card, .feature-card {
+            .plan-card, .feature-card, .testimonial-card {
                 padding: 2rem; /* Original padding for larger screens */
             }
         }
         @media (max-width: 639px) { /* before sm breakpoint */
-            .plan-card, .feature-card {
+            .plan-card, .feature-card, .testimonial-card {
                 padding: 1rem; /* Even smaller padding for very small mobile */
             }
         }
-        .plan-card h3, .feature-card h3 {
-            font-size: 1.5rem;
+        .plan-card h3, .feature-card h3, .testimonial-card h3 {
+            font-size: 1.625rem; /* Slightly larger heading */
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            color: #1e293b; /* slate-900 */
         }
         .plan-card .speed {
-            font-size: 2.25rem;
+            font-size: 2.5rem; /* Slightly larger speed text */
             font-weight: 800;
-            color: #dc2626; /* red-600 */
+            color: #ef4444; /* red-500 */
         }
         .plan-card .price {
-            font-size: 1.875rem;
+            font-size: 2.125rem; /* Slightly larger price text */
             font-weight: 700;
-            margin-top: 0.5rem;
-            color: #1e293b; /* slate-800 */
+            margin-top: 0.75rem;
+            color: #1e293b; /* slate-900 */
         }
         .plan-card ul {
             list-style: none;
             padding: 0;
-            margin-top: 1rem;
+            margin-top: 1.25rem;
             text-align: left;
             width: 100%;
         }
         .plan-card ul li {
             display: flex;
             align-items: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.625rem; /* Slightly more space */
             color: #475569; /* slate-600 */
+            font-size: 1.05rem;
         }
         .plan-card ul li svg {
-            margin-right: 0.5rem;
-            color: #dc2626; /* red-600 */
+            margin-right: 0.625rem;
+            color: #ef4444; /* red-500 */
         }
 
         /* Header specific styles */
@@ -99,11 +106,11 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; /* Added transform transition */
-            transform: translateY(0); /* Default state: visible */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            transform: translateY(0);
         }
         .header-hidden {
-            transform: translateY(-100%); /* Hide the header by moving it up */
+            transform: translateY(-100%);
         }
         .header-shadow {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -115,8 +122,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            color: transparent; /* Fallback for browsers that don't support text-fill-color */
-            /* text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2); Removed shadow */
+            color: transparent;
         }
 
         /* Animation for main headline */
@@ -130,18 +136,62 @@
                 transform: translateY(0);
             }
         }
-        /* Removed .animate-fade-in-up from h1 directly */
+        .animate-fade-in-up {
+            animation: fade-in-up 1s ease-out forwards;
+        }
+
+        /* FAQ Accordion Styles */
+        .accordion-item {
+            border-bottom: 1px solid #e2e8f0; /* slate-200 */
+            margin-bottom: 0.5rem;
+        }
+        .accordion-button {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 1rem 0;
+            font-weight: 600;
+            text-align: left;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            color: #1e293b; /* slate-900 */
+            transition: color 0.2s ease-in-out;
+        }
+        .accordion-button:hover {
+            color: #ef4444; /* red-500 */
+        }
+        .accordion-content {
+            padding-bottom: 1rem;
+            color: #475569; /* slate-600 */
+            display: none; /* Hidden by default */
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding-bottom 0.3s ease-out;
+        }
+        .accordion-content.active {
+            display: block; /* Show when active */
+            max-height: 200px; /* Adjust as needed for content length */
+            padding-bottom: 1rem;
+        }
+        .accordion-icon {
+            transition: transform 0.2s ease-in-out;
+        }
+        .accordion-icon.rotate {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body class="text-gray-800">
 
     <header id="main-header" class="bg-white shadow-sm py-3 header-fixed border-b-[1px] border-red-600">
-        <div class="container mx-auto px-4 flex items-center h-full">
-            <div class="flex flex-col items-center flex-grow md:flex-row md:items-center md:flex-grow-0 md:mr-auto">
+        <div class="container mx-auto px-4 flex items-center h-full relative">
+            <div class="flex flex-col items-center justify-center w-full md:w-auto md:flex-row md:items-center md:justify-start header-logo-fonts">
                 <span class="text-lg md:text-2xl font-extrabold text-blue-900">Al Anees Electronics</span>
                 <span class="ml-0 md:ml-4 text-red-700 text-base md:text-2xl font-bold">ooredoo Premium Partner</span>
             </div>
-            <nav class="flex items-center ml-auto">
+            <nav class="absolute right-4 top-1/2 -translate-y-1/2 md:relative md:top-auto md:right-auto md:translate-y-0 md:ml-auto flex items-center">
                 <a href="#ooredoo-plans" class="text-red-600 hover:text-red-700 font-semibold px-3 py-1 rounded-md transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -152,49 +202,65 @@
     </header>
 
     <main class="container mx-auto px-4 md:px-6 py-8 md:py-12 mt-8">
-        <section id="home" class="text-center py-6 md:py-12 bg-white p-4 md:p-10 rounded-2xl shadow-lg border border-gray-100 border-b-[1px] border-red-600 mx-auto">
-            <h1 class="text-3xl md:text-6xl font-extrabold tracking-tight leading-tight">
-                🚀 Get Uninterrupted Connectivity with 
-                <span class="headline-gradient">Lightning-Fast WiFi!</span>
-            </h1>
-            <p class="mt-4 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-                Experience seamless streaming, gaming, and browsing. All for one incredible price.
-            </p>
-            <h2 class="mt-8 text-3xl md:text-4xl font-bold text-gray-900">
-                Home WiFi @310 Qr monthly
-            </h2>
-            <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
-                 <a href="#get-connected" class="bg-red-600 text-white font-bold py-3 px-6 sm:py-4 sm:px-10 rounded-xl shadow-xl hover:bg-red-700 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-red-300">
-                    Get Started Now
-                </a>
-                <a href="https://wa.me/message/B6EGDTFV7UT5J1" target="_blank" class="bg-green-500 text-white font-bold py-3 px-6 sm:py-4 sm:px-10 rounded-xl shadow-xl hover:bg-green-600 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-green-300 flex items-center">
-                    Chat with us 24/7
-                </a>
+        <section id="home" class="text-center py-6 md:py-12 bg-white p-4 md:p-10 rounded-2xl shadow-lg border border-gray-100 border-b-[1px] border-red-600 mx-auto relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-red-50 to-white opacity-70 rounded-2xl z-0"></div>
+            <div class="relative z-10">
+                <h1 class="text-3xl md:text-6xl font-extrabold tracking-tight leading-tight animate-fade-in-up">
+                    🚀 Get Uninterrupted Connectivity with
+                    <span class="headline-gradient">Lightning-Fast WiFi!</span>
+                </h1>
+                <p class="mt-4 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+                    Experience seamless streaming, gaming, and browsing. All for one incredible price.
+                </p>
+                <h2 class="mt-8 text-3xl md:text-4xl font-bold text-gray-900">
+                    Home WiFi @310 Qr monthly
+                </h2>
+
+                <div class="mt-8 mb-8 grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+                    <div class="flex items-center justify-center text-base font-medium text-slate-800 bg-white/70 backdrop-blur-sm rounded-lg py-2 px-3 shadow-sm border border-slate-100">
+                        <span class="mr-2 text-red-500">✔</span> Unlimited internet
+                    </div>
+                    <div class="flex items-center justify-center text-base font-medium text-slate-800 bg-white/70 backdrop-blur-sm rounded-lg py-2 px-3 shadow-sm border border-slate-100">
+                        <span class="mr-2 text-red-500">✔</span> Free Installation
+                    </div>
+                    <div class="flex items-center justify-center text-base font-medium text-slate-800 bg-white/70 backdrop-blur-sm rounded-lg py-2 px-3 shadow-sm border border-slate-100">
+                        <span class="mr-2 text-red-500">✔</span> Free landline connection
+                    </div>
+                </div>
+
+                <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
+                     <a href="#get-connected" class="bg-red-600 text-white font-bold py-3 px-6 sm:py-4 sm:px-10 rounded-xl shadow-xl hover:bg-red-700 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-red-300">
+                        Get Started Now
+                    </a>
+                    <a href="https://wa.me/message/B6EGDTFV7UT5J1" target="_blank" class="bg-green-500 text-white font-bold py-3 px-6 sm:py-4 sm:px-10 rounded-xl shadow-xl hover:bg-green-600 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-green-300 flex items-center">
+                        Chat with us 24/7
+                    </a>
+                </div>
             </div>
         </section>
 
         <section id="features" class="py-16 md:py-20">
              <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold tracking-tight">Why Choose Ooredoo Home+?</h2>
-                <p class="mt-2 text-gray-600">Get everything you need for a seamless and powerful home internet experience.</p>
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900">Why Choose Ooredoo Home+?</h2>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Get everything you need for a seamless and powerful home internet experience.</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-8 text-center">
-                <div class="feature-card bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md border border-gray-100">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6 md:gap-8 text-center max-w-6xl mx-auto">
+                <div class="feature-card">
                     <div class="text-4xl mb-4">⚡</div>
                     <h3 class="text-xl font-bold mb-2">Blazing-Fast Speeds</h3>
                     <p class="text-gray-600">Enjoy speeds up to 10 Gbps for 4K streaming, lag-free gaming, and smooth Browse.</p>
                 </div>
-                <div class="feature-card bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md border border-gray-100">
+                <div class="feature-card">
                     <div class="text-4xl mb-4">🛠️</div>
                     <h3 class="text-xl font-bold mb-2">Free Installation & Router</h3>
                     <p class="text-gray-600">Professional setup and a complimentary Wi-Fi router included with your plan.</p>
                 </div>
-                <div class="feature-card bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md border border-gray-100">
+                <div class="feature-card">
                     <div class="text-4xl mb-4">📞</div>
                     <h3 class="text-xl font-bold mb-2">No Landline Needed</h3>
                     <p class="text-gray-600">Enjoy dedicated fiber internet connectivity without the need for a traditional landline.</p>
                 </div>
-                <div class="feature-card bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md border border-gray-100">
+                <div class="feature-card">
                     <div class="text-4xl mb-4">📺</div>
                     <h3 class="text-xl font-bold mb-2">Ooredoo tv Included</h3>
                     <p class="text-gray-600">Access entertainment with Ooredoo tv App or TV box, depending on your chosen plan.</p>
@@ -204,50 +270,40 @@
 
         <section id="additional-benefits" class="py-16 md:py-20 bg-gray-50 rounded-2xl">
             <div class="text-center mb-12 px-4">
-                <h2 class="text-3xl font-bold tracking-tight">More Reasons to Love Ooredoo Home+</h2>
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900">More Reasons to Love Ooredoo Home+</h2>
                 <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Discover even more benefits that make Ooredoo Home+ the best choice for your home.</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-8 px-4">
-                <div class="feature-card bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md border border-gray-100">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6 md:gap-8 px-4 max-w-6xl mx-auto">
+                <div class="feature-card">
                     <div class="text-4xl mb-4">✨</div>
                     <h3 class="text-xl font-bold mb-2">Seamless Setup</h3>
                     <p class="text-gray-600">Our expert technicians ensure a smooth and hassle-free installation process.</p>
                 </div>
-                <div class="feature-card bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md border border-gray-100">
+                <div class="feature-card">
                     <div class="text-4xl mb-4">🌐</div>
                     <h3 class="text-xl font-bold mb-2">Reliable Connectivity</h3>
                     <p class="text-gray-600">Experience consistent and stable internet, powered by Qatar's leading network.</p>
                 </div>
-                <div class="feature-card bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md border border-gray-100">
+                <div class="feature-card">
                     <div class="text-4xl mb-4">📞</div>
                     <h3 class="text-xl font-bold mb-2">24/7 Customer Support</h3>
                     <p class="text-gray-600">Our dedicated team is always ready to assist you with any queries or issues.</p>
                 </div>
             </div>
         </section>
-        
+
         <section id="ooredoo-plans" class="py-16 md:py-20 bg-red-50 rounded-2xl">
             <div class="text-center mb-12 px-4">
-                <h2 class="text-3xl font-bold tracking-tight">Explore Ooredoo Home+ Plans</h2>
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900">Explore Ooredoo Home+ Plans</h2>
                 <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Discover the perfect internet package for your home. From basic Browse to ultimate gaming, we have a plan that fits your needs.</p>
             </div>
             <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 max-w-6xl mx-auto">
                 </div>
         </section>
-        
-        <section id="comparison" class="py-16 md:py-20">
-             <div class="text-center mb-12 px-4">
-                <h2 class="text-3xl font-bold tracking-tight">See How We Compare</h2>
-                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">We're confident you won't find a better deal. Our plan is designed to give you the most speed and value for your money, beating the competition.</p>
-            </div>
-            <div class="chart-container">
-                <canvas id="comparisonChart"></canvas>
-            </div>
-        </section>
 
         <section id="get-connected" class="py-16 md:py-20 bg-red-50 rounded-2xl">
             <div class="text-center mb-12 px-4">
-                <h2 class="text-3xl font-bold tracking-tight">Get Connected Today!</h2>
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900">Get Connected Today!</h2>
                 <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Fill out the form below and our team will get in touch with you to help set up your new Home WiFi connection.</p>
             </div>
             <div class="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-100">
@@ -256,6 +312,15 @@
                         <label>
                             Don’t fill this out if you’re human: <input name="bot-field" />
                         </label>
+                    </div>
+                    <div>
+                        <label for="planSelection" class="block text-sm font-medium text-gray-700">Select Plan</label>
+                        <select id="planSelection" name="planSelection" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm">
+                            <option value="" disabled selected>Select a plan</option>
+                            <option value="Home+Go">Home+Go</option>
+                            <option value="Home+Prime">Home+Prime</option>
+                            <option value="Home+Entertainment">Home+Entertainment</option>
+                        </select>
                     </div>
                     <div>
                         <label for="qatarId" class="block text-sm font-medium text-gray-700">Qatar ID Number</label>
@@ -294,6 +359,16 @@
             </div>
         </section>
 
+        <section id="comparison" class="py-16 md:py-20">
+             <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900">See How We Compare</h2>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">We're confident you won't find a better deal. Our plan is designed to give you the most speed and value for your money, beating the competition.</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </section>
+
         <section id="download" class="py-20 md:py-24">
             <div class="bg-red-900 text-white rounded-2xl p-8 md:p-16 text-center shadow-2xl">
                  <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight">Connect with us!</h2>
@@ -321,7 +396,7 @@
             <div class="flex flex-col items-center md:items-end text-center md:text-right">
                 <p class="text-white">&copy; 2025 Home WiFi @310 Qr monthly. Al Anees.</p>
                 <p class="mt-2 text-sm">
-                    <a href="https://alaneesqatar.qa/" target="_blank" class="hover:text-red-200">alanees electronics website</a> | Follow Us: 
+                    <a href="https://alaneesqatar.qa/" target="_blank" class="hover:text-red-200">alanees electronics website</a> | Follow Us:
                     <a href="#" class="hover:text-red-200">@alaneeselectronics</a>
                 </p>
             </div>
@@ -568,7 +643,7 @@
                     event.preventDefault(); // Prevent default form submission
 
                     const formData = new FormData(contactForm);
-                    
+
                     try {
                         await fetch(contactForm.action, {
                             method: 'POST',
@@ -621,7 +696,7 @@
                     event.preventDefault(); // Prevent default form submission
 
                     const formData = new FormData(checkoutFormModal);
-                    
+
                     try {
                         await fetch(checkoutFormModal.action, {
                             method: 'POST',
@@ -636,6 +711,33 @@
                     }
                 });
             }
+
+            // FAQ Accordion functionality
+            const accordionButtons = document.querySelectorAll('.accordion-button');
+            accordionButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    const icon = button.querySelector('.accordion-icon');
+
+                    // Close other open accordions
+                    accordionButtons.forEach(otherButton => {
+                        if (otherButton !== button) {
+                            otherButton.nextElementSibling.classList.remove('active');
+                            otherButton.nextElementSibling.style.maxHeight = null;
+                            otherButton.querySelector('.accordion-icon').classList.remove('rotate');
+                        }
+                    });
+
+                    // Toggle current accordion
+                    content.classList.toggle('active');
+                    icon.classList.toggle('rotate');
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
+                });
+            });
         }; // End of window.onload function
     </script>
 
