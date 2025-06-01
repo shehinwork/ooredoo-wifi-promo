@@ -881,8 +881,10 @@
 
                 // Comparison Chart
                 const ctx = document.getElementById('comparisonChart');
+                let comparisonChartInstance = null; // Declare chart instance globally within initializePageLogic
+
                 if(ctx) {
-                    new Chart(ctx, {
+                    comparisonChartInstance = new Chart(ctx, {
                         type: 'bar',
                         data: {
                             labels: ['Price (QR/Month)', 'Max Speed (Mbps)'],
@@ -952,6 +954,25 @@
                             }
                         }
                     });
+
+                    // Add ResizeObserver to update chart when container size changes
+                    const chartContainer = ctx.closest('.chart-container');
+                    if (chartContainer) {
+                        const resizeObserver = new ResizeObserver(entries => {
+                            for (let entry of entries) {
+                                if (entry.target === chartContainer) {
+                                    // Update canvas dimensions to match container
+                                    ctx.width = chartContainer.clientWidth;
+                                    ctx.height = chartContainer.clientHeight;
+                                    if (comparisonChartInstance) {
+                                        comparisonChartInstance.resize(); // Tell Chart.js to resize
+                                        comparisonChartInstance.update(); // And update the chart
+                                    }
+                                }
+                            }
+                        });
+                        resizeObserver.observe(chartContainer);
+                    }
                 }
 
                 // Header scroll hide/show effect
@@ -1135,34 +1156,6 @@ Please provide your recommendation in a friendly tone.`;
                         }
                     });
                 }
-
-
-                // FAQ Accordion functionality - REMOVED
-                // const accordionButtons = document.querySelectorAll('.accordion-button');
-                // accordionButtons.forEach(button => {
-                //     button.addEventListener('click', () => {
-                //         const content = button.nextElementSibling;
-                //         const icon = button.querySelector('.accordion-icon');
-
-                //         // Close other open accordions
-                //         accordionButtons.forEach(otherButton => {
-                //             if (otherButton !== button) {
-                //                 otherButton.nextElementSibling.classList.remove('active');
-                //                 otherButton.nextElementSibling.style.maxHeight = null;
-                //                 otherButton.querySelector('.accordion-icon').classList.remove('rotate');
-                //             }
-                //         });
-
-                //         // Toggle current accordion
-                //         content.classList.toggle('active');
-                //         icon.classList.toggle('rotate');
-                //         if (content.style.maxHeight) {
-                //             content.style.maxHeight = null;
-                //         } else {
-                //             content.style.maxHeight = content.scrollHeight + "px";
-                //         }
-                //     });
-                // });
 
                 // Smooth scrolling for anchor links
                 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -1434,7 +1427,10 @@ Please provide your recommendation in a friendly tone.`;
                     orderInProgress = false; // Reset order state
                     currentOrderDetails = {}; // Clear collected data
                     currentQuestionIndex = -1; // Reset question index
-                    displayMessageTyping("Hello! I'm your Ooredoo Assistant. I can help you find information or place an order for a Home+ plan. <br><br>To start an order, just type something like 'I want to order a plan'.", 'ai'); // Use typing effect for initial message
+                    // Add a small timeout to ensure modal is fully rendered before typing effect starts
+                    setTimeout(() => {
+                        displayMessageTyping("Hello! I'm your Ooredoo Assistant. I can help you find information or place an order for a Home+ plan. <br><br>To start an order, just type something like 'I want to order a plan'.", 'ai'); // Use typing effect for initial message
+                    }, 100); // 100ms delay
                 });
 
                 closeChatbotModalBtn.addEventListener('click', () => {
