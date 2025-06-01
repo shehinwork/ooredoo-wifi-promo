@@ -23,14 +23,32 @@
 
         // Initialize Firebase and authenticate
         const initializeFirebase = async () => {
+            console.log("Attempting to initialize Firebase...");
             try {
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+                let firebaseConfig = {};
+                try {
+                    firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+                } catch (e) {
+                    console.error("Error parsing __firebase_config:", e);
+                    console.error("Raw __firebase_config value:", typeof __firebase_config !== 'undefined' ? __firebase_config : "undefined");
+                    // Set a default empty config if parsing fails to avoid breaking
+                    firebaseConfig = {};
+                }
+
+                // IMPORTANT: Check for projectId before initializing
+                if (!firebaseConfig.projectId) {
+                    console.error("Firebase Initialization Error: 'projectId' is missing in the Firebase configuration. This is critical for connecting to your Firebase project. Please ensure __firebase_config is correctly provided by the environment.");
+                    // Prevent further Firebase-dependent logic from running by not setting window.firebaseApp
+                    return;
+                }
 
                 if (!window.firebaseApp) {
+                    console.log("Firebase app not yet initialized. Initializing now.");
                     window.firebaseApp = initializeApp(firebaseConfig);
                     window.db = getFirestore(window.firebaseApp);
                     window.auth = getAuth(window.firebaseApp);
+                    console.log("Firebase app, DB, and Auth instances created.");
 
                     onAuthStateChanged(window.auth, async (user) => {
                         if (user) {
@@ -38,23 +56,30 @@
                             console.log("Firebase authenticated. User ID:", window.userId);
                             document.getElementById('current-user-id').textContent = window.userId; // Display user ID
                         } else {
-                            console.log("No user signed in. Attempting anonymous sign-in.");
+                            console.log("No user signed in. Attempting anonymous sign-in or custom token sign-in.");
                             try {
                                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                    console.log("Attempting sign-in with custom token.");
                                     await signInWithCustomToken(window.auth, __initial_auth_token);
+                                    console.log("Signed in with custom token successfully.");
                                 } else {
+                                    console.log("Custom token not available, attempting anonymous sign-in.");
                                     await signInAnonymously(window.auth);
+                                    console.log("Signed in anonymously successfully.");
                                 }
                                 window.userId = window.auth.currentUser?.uid || crypto.randomUUID(); // Fallback for anonymous
                                 document.getElementById('current-user-id').textContent = window.userId; // Display user ID
-                                console.log("Signed in anonymously. User ID:", window.userId);
+                                console.log("Current User ID after sign-in attempt:", window.userId);
                             } catch (error) {
                                 console.error("Firebase authentication failed:", error);
                                 window.userId = crypto.randomUUID(); // Generate a random ID if auth fails
-                                document.getElementById('current-user-id').textContent = window.userId + " (Anon)";
+                                document.getElementById('current-user-id').textContent = window.userId + " (Anon - Auth Failed)";
+                                console.error("User ID set to random UUID due to auth failure.");
                             }
                         }
                     });
+                } else {
+                    console.log("Firebase app already initialized.");
                 }
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
@@ -69,14 +94,6 @@
             addDoc,
             serverTimestamp
         };
-    </script>
-    <script>
-        // Call lucide.createIcons() immediately after the script loads
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        } else {
-            console.warn("Lucide library not loaded when trying to create icons.");
-        }
     </script>
     <style>
         body {
@@ -787,14 +804,24 @@
         window.onload = function () {
             // Ensure Firebase is initialized before proceeding with Firebase-dependent logic
             const checkFirebaseReady = setInterval(() => {
+                // Check if window.firebaseApp is null and if initializeFirebase returned early due to missing projectId
+                if (!window.firebaseApp && typeof __firebase_config !== 'undefined' && !JSON.parse(__firebase_config).projectId) {
+                    console.error("Firebase not initialized due to missing projectId. Stopping readiness check.");
+                    clearInterval(checkFirebaseReady);
+                    return; // Stop checking if projectId is definitely missing
+                }
+
                 if (window.db && window.auth && window.userId) {
                     clearInterval(checkFirebaseReady);
                     console.log("Firebase is ready in window.onload. User ID:", window.userId);
                     initializePageLogic();
+                } else {
+                    console.log("Firebase not yet ready. Waiting...");
                 }
             }, 100); // Check every 100ms
 
             function initializePageLogic() {
+                console.log("Initializing page logic...");
                 // Ooredoo Home+ Plans Data
                 const ooredooPlans = [
                     {
@@ -879,14 +906,24 @@
                     });
                 }
 
+                // Call lucide.createIcons() once the DOM is ready and scripts are likely loaded
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                    console.log("Lucide icons created.");
+                } else {
+                    console.warn("Lucide library still not loaded when trying to create icons in initializePageLogic.");
+                }
+
                 // Comparison Chart
                 const ctx = document.getElementById('comparisonChart');
                 let comparisonChartInstance = null; // Declare chart instance globally within initializePageLogic
 
                 if(ctx) {
+                    console.log("Chart canvas element found. Initializing Chart.js...");
                     // Destroy existing chart instance if it exists
                     if (comparisonChartInstance) {
                         comparisonChartInstance.destroy();
+                        console.log("Existing chart instance destroyed.");
                     }
 
                     // Initialize Chart.js chart
@@ -969,6 +1006,7 @@
                         ctx.height = chartContainer.clientHeight;
                         comparisonChartInstance.resize();
                         comparisonChartInstance.update();
+                        console.log("Chart initialized and resized to container dimensions.");
 
                         // Add a small timeout to ensure chart renders correctly after page load
                         setTimeout(() => {
@@ -993,7 +1031,11 @@
                             }
                         });
                         resizeObserver.observe(chartContainer);
+                    } else {
+                        console.warn("Chart container not found for comparisonChart.");
                     }
+                } else {
+                    console.warn("Comparison chart canvas element not found.");
                 }
 
                 // Header scroll hide/show effect
@@ -1026,6 +1068,7 @@
                     contactForm.addEventListener('submit', async function(event) {
                         event.preventDefault(); // Prevent default form submission
                         formSpinner.classList.remove('hidden'); // Show spinner
+                        console.log("Contact form submitted. Simulating submission...");
 
                         // Simulate a network request with a delay
                         setTimeout(() => {
@@ -1033,6 +1076,7 @@
                             successMessage.classList.remove('hidden'); // Show the success message
                             contactForm.reset(); // Clear form fields
                             formSpinner.classList.add('hidden'); // Hide spinner
+                            console.log("Contact form simulation complete. Success message displayed.");
                         }, 1500); // Simulate 1.5 seconds of loading
                     });
                 }
@@ -1050,24 +1094,30 @@
                     openCheckoutModalBtn.addEventListener('click', function(event) {
                         event.preventDefault(); // Prevent default link behavior
                         checkoutModal.classList.remove('hidden'); // Show the modal
+                        checkoutModal.classList.add('open'); // Add open class for transitions
+                        console.log("Checkout modal opened.");
                     });
 
                     closeModalButton.addEventListener('click', function() {
+                        checkoutModal.classList.remove('open'); // Remove open class for transitions
                         checkoutModal.classList.add('hidden'); // Hide the modal
                         // Reset modal form and message when closed
                         checkoutFormModal.reset();
                         checkoutFormModal.style.display = 'block';
                         successMessageModal.classList.add('hidden');
+                        console.log("Checkout modal closed by button.");
                     });
 
                     // Close modal if user clicks outside of it
                     checkoutModal.addEventListener('click', function(event) {
                         if (event.target === checkoutModal) {
+                            checkoutModal.classList.remove('open');
                             checkoutModal.classList.add('hidden');
                             // Reset modal form and message when closed
                             checkoutFormModal.reset();
                             checkoutFormModal.style.display = 'block';
                             successMessageModal.classList.add('hidden');
+                            console.log("Checkout modal closed by overlay click.");
                         }
                     });
 
@@ -1075,6 +1125,7 @@
                     checkoutFormModal.addEventListener('submit', async function(event) {
                         event.preventDefault(); // Prevent default form submission
                         formSpinnerModal.classList.remove('hidden'); // Show spinner
+                        console.log("Checkout modal form submitted. Simulating submission...");
 
                         // Simulate a network request with a delay
                         setTimeout(() => {
@@ -1082,6 +1133,7 @@
                             successMessageModal.classList.remove('hidden'); // Show the success message
                             checkoutFormModal.reset(); // Clear form fields
                             formSpinnerModal.classList.add('hidden'); // Hide spinner
+                            console.log("Checkout modal form simulation complete. Success message displayed.");
                         }, 1500); // Simulate 1.5 seconds of loading
                     });
                 }
@@ -1126,6 +1178,7 @@
                         if (!userUsage) {
                             aiRecommendationOutput.innerHTML = '<p class="text-red-500">Please describe your internet usage to get a recommendation.</p>';
                             aiRecommendationOutput.classList.remove('hidden');
+                            console.warn("AI recommendation request aborted: user usage description is empty.");
                             return;
                         }
 
@@ -1150,6 +1203,14 @@ Please provide your recommendation in a friendly tone.`;
                         const apiKey = ""; // Leave as-is, Canvas will provide at runtime
                         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
+                        if (!apiKey) {
+                            console.error("Gemini API Key is missing. Cannot make API call.");
+                            aiRecommendationOutput.innerHTML = '<p class="text-red-500">Error: AI service is not configured. Please contact support.</p>';
+                            aiSpinner.classList.add('hidden');
+                            aiRecommendationOutput.classList.remove('hidden');
+                            return;
+                        }
+
                         try {
                             const response = await fetch(apiUrl, {
                                 method: 'POST',
@@ -1160,7 +1221,12 @@ Please provide your recommendation in a friendly tone.`;
                             const result = await response.json();
                             console.log("AI recommendation response received:", result);
 
-                            if (result.candidates && result.candidates.length > 0 &&
+                            if (!response.ok) {
+                                console.error('Gemini API response error status:', response.status);
+                                console.error('Gemini API error details:', result);
+                                aiRecommendationOutput.innerHTML = `<p class="text-red-500">Sorry, I encountered an issue generating a recommendation. (Error: ${response.status})</p>`;
+                            }
+                            else if (result.candidates && result.candidates.length > 0 &&
                                 result.candidates[0].content && result.candidates[0].content.parts &&
                                 result.candidates[0].content.parts.length > 0) {
                                 let text = result.candidates[0].content.parts[0].text;
@@ -1175,7 +1241,7 @@ Please provide your recommendation in a friendly tone.`;
                             }
                         } catch (error) {
                             aiRecommendationOutput.innerHTML = '<p class="text-red-500">An error occurred while fetching the recommendation. Please try again later.</p>';
-                            console.error('Gemini API error:', error);
+                            console.error('Gemini API fetch error:', error);
                         } finally {
                             aiSpinner.classList.add('hidden');
                             aiRecommendationOutput.classList.remove('hidden'); // Show output after processing
@@ -1287,6 +1353,7 @@ Please provide your recommendation in a friendly tone.`;
                     aiTypingMessageElement.innerHTML = 'AI is typing... <span class="loading-spinner w-4 h-4 ml-2"></span>';
                     chatbox.appendChild(aiTypingMessageElement);
                     chatbox.scrollTop = chatbox.scrollHeight;
+                    console.log("Sending chatbot AI request...");
 
 
                     const payload = { contents: chatHistory };
@@ -1295,6 +1362,14 @@ Please provide your recommendation in a friendly tone.`;
                     // `""` with your actual Gemini API key.
                     const apiKey = "";
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    if (!apiKey) {
+                        console.error("Gemini API Key is missing for chatbot. Cannot make API call.");
+                        aiTypingMessageElement.remove();
+                        displayMessageTyping("Error: AI service is not configured. Please contact support.", 'ai');
+                        chatHistory.pop(); // Remove user message from history if API failed
+                        return;
+                    }
 
                     try {
                         const response = await fetch(apiUrl, {
@@ -1308,7 +1383,8 @@ Please provide your recommendation in a friendly tone.`;
 
                         if (!response.ok) {
                             const errorData = await response.json();
-                            console.error('Gemini API response error:', response.status, errorData);
+                            console.error('Gemini API response error status for chatbot:', response.status);
+                            console.error('Gemini API error details for chatbot:', errorData);
                             displayMessageTyping(`I'm sorry, I encountered an issue connecting to the AI. Please try again later. (Error: ${response.status})`, 'ai');
                             chatHistory.pop(); // Remove user message from history if API failed
                             return;
@@ -1328,7 +1404,7 @@ Please provide your recommendation in a friendly tone.`;
                             const errorMsg = "Sorry, I'm having trouble understanding. Can you please rephrase?";
                             chatHistory.push({ role: "model", parts: [{ text: errorMsg }] });
                             displayMessageTyping(errorMsg, 'ai'); // Use typing effect for error
-                            console.error("Unexpected AI API response structure:", result);
+                            console.error("Unexpected AI API response structure for chatbot:", result);
                         }
                     } catch (error) {
                         // Remove AI typing indicator
@@ -1336,7 +1412,7 @@ Please provide your recommendation in a friendly tone.`;
                         const errorMsg = "I apologize, but I encountered a network error. Please check your connection and try again.";
                         chatHistory.push({ role: "model", parts: [{ text: errorMsg }] });
                         displayMessageTyping(errorMsg, 'ai'); // Use typing effect for error
-                        console.error('Gemini API fetch error:', error);
+                        console.error('Gemini API fetch error for chatbot:', error);
                     }
                 };
 
