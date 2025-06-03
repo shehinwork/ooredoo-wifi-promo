@@ -1245,12 +1245,13 @@ Please provide your recommendation in a friendly tone.`;
                         chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
                         const payload = { contents: chatHistory };
-                        const apiKey = ""; // Leave as-is, Canvas will provide at runtime
+                        // Read API key from Netlify environment variable
+                        const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
                         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                         if (!apiKey) {
-                            console.error("Gemini API Key is missing. Cannot make API call.");
-                            aiRecommendationOutput.innerHTML = '<p class="text-red-500">Error: AI service is not configured. Please contact support.</p>';
+                            console.error("Gemini API Key is missing. Cannot make API call. Ensure VITE_GEMINI_API_KEY is set in Netlify.");
+                            aiRecommendationOutput.innerHTML = '<p class="text-red-500">Error: AI service is not configured. Please ensure VITE_GEMINI_API_KEY is set in Netlify environment variables.</p>';
                             aiSpinner.classList.add('hidden');
                             aiRecommendationOutput.classList.remove('hidden');
                             return;
@@ -1402,16 +1403,14 @@ Please provide your recommendation in a friendly tone.`;
 
 
                     const payload = { contents: chatHistory };
-                    // The API key is provided by the Canvas environment at runtime for security.
-                    // If you are running this code outside Canvas, you would need to replace
-                    // `""` with your actual Gemini API key.
-                    const apiKey = "";
+                    // Read API key from Netlify environment variable
+                    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                     if (!apiKey) {
-                        console.error("Gemini API Key is missing for chatbot. Cannot make API call.");
+                        console.error("Gemini API Key is missing for chatbot. Cannot make API call. Ensure VITE_GEMINI_API_KEY is set in Netlify.");
                         aiTypingMessageElement.remove();
-                        displayMessageTyping("Error: AI service is not configured. Please contact support.", 'ai');
+                        displayMessageTyping("Error: AI service is not configured. Please ensure VITE_GEMINI_API_KEY is set in Netlify environment variables.", 'ai');
                         chatHistory.pop(); // Remove user message from history if API failed
                         return;
                     }
